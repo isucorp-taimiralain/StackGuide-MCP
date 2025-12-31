@@ -782,6 +782,45 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
           required: ['slug', 'projectType']
         }
+      },
+      
+      // ==================== CODE REVIEW TOOLS ====================
+      {
+        name: 'review_file',
+        description: 'Review a local file against active rules. Works on your project files directly.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            filePath: {
+              type: 'string',
+              description: 'Path to the file to review (relative to project or absolute)'
+            },
+            url: {
+              type: 'string',
+              description: 'Optional: URL to fetch and review instead of local file'
+            }
+          },
+          required: []
+        }
+      },
+      {
+        name: 'review_project',
+        description: 'Review your entire project structure and key files against active rules',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            projectPath: {
+              type: 'string',
+              description: 'Project path (default: current directory)'
+            },
+            focus: {
+              type: 'string',
+              description: 'Focus area for review',
+              enum: ['all', 'security', 'performance', 'architecture', 'coding-standards']
+            }
+          },
+          required: []
+        }
       }
     ]
   };
@@ -1885,6 +1924,144 @@ ${knowledgeContent || 'No knowledge files available.'}
         };
       }
       
+      // ==================== CODE REVIEW HANDLERS ====================
+      case 'review_file': {
+        const { filePath, url } = args as { filePath?: string; url?: string };
+        
+        if (!serverState.activeProjectType) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                error: 'No project configured',
+                hint: 'Use auto_setup or select_project_type first'
+              }, null, 2)
+            }]
+          };
+        }
+        
+        let fileContent = '';
+        let fileName = '';
+        
+        if (url) {
+          // Fetch from URL
+          try {
+            const response = await fetch(url);
+            fileContent = await response.text();
+            fileName = url.split('/').pop() || 'remote-file';
+          } catch (e) {
+            return { content: [{ type: 'text', text: `Error fetching URL: ${e}` }] };
+          }
+        } else if (filePath) {
+          // Read local file
+          const fs = await import('fs');
+          const path = await import('path');
+          const resolvedPath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
+          
+          if (!fs.existsSync(resolvedPath)) {
+            return { content: [{ type: 'text', text: `File not found: ${resolvedPath}` }] };
+          }
+          
+          fileContent = fs.readFileSync(resolvedPath, 'utf-8');
+          fileName = path.basename(resolvedPath);
+        } else {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                error: 'No file specified',
+                hint: 'Provide filePath for local files or url for remote files'
+              }, null, 2)
+            }]
+          };
+        }
+        
+        const activeRules = serverState.loadedRules
+          .filter(r => !serverState.activeConfiguration || serverState.activeConfiguration.selectedRules.includes(r.id));
+        
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              file: fileName,
+              projectType: serverState.activeProjectType,
+              rulesApplied: activeRules.map(r => r.name),
+              codeToReview: fileContent.substring(0, 10000),
+              truncated: fileContent.length > 10000,
+              instructions: 'Review this code against the active rules for: coding standards, security, performance, and best practices.'
+            }, null, 2)
+          }]
+        };
+      }
+      
+      case 'review_project': {
+        const { projectPath = '.', focus = 'all' } = args as { projectPath?: string; focus?: string };
+        const fs = await import('fs');
+        const path = await import('path');
+        
+        const resolvedPath = projectPath === '.' ? process.cwd() : 
+          (path.isAbsolute(projectPath) ? projectPath : path.join(process.cwd(), projectPath));
+        
+        if (!fs.existsSync(resolvedPath)) {
+          return { content: [{ type: 'text', text: `Project path not found: ${resolvedPath}` }] };
+        }
+        
+        // Detect project if not configured
+        if (!serverState.activeProjectType) {
+          const detection = autoDetect.detectProjectType(resolvedPath);
+          if (detection.detected && detection.projectType) {
+            const projectType = detection.projectType as ProjectType;
+            serverState.activeProjectType = projectType;
+            serverState.loadedRules = rulesProvider.getRulesForProject(projectType);
+            serverState.loadedKnowledge = knowledgeProvider.getKnowledgeForProject(projectType);
+          }
+        }
+        
+        // Get key files based on project type
+        const keyFiles: string[] = [];
+        const scanExtensions = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs', '.php', '.rb'];
+        
+        function scanDir(dir: string, depth = 0): void {
+          if (depth > 3) return;
+          const items = fs.readdirSync(dir);
+          for (const item of items) {
+            if (item.startsWith('.') || item === 'node_modules' || item === '__pycache__' || item === 'venv') continue;
+            const fullPath = path.join(dir, item);
+            const stat = fs.statSync(fullPath);
+            if (stat.isDirectory()) {
+              scanDir(fullPath, depth + 1);
+            } else if (scanExtensions.some(ext => item.endsWith(ext))) {
+              keyFiles.push(path.relative(resolvedPath, fullPath));
+            }
+          }
+        }
+        
+        scanDir(resolvedPath);
+        
+        // Filter rules by focus area
+        let filteredRules = serverState.loadedRules;
+        if (focus !== 'all') {
+          filteredRules = serverState.loadedRules.filter(r => 
+            r.category === focus || r.category === focus.replace('-', '')
+          );
+        }
+        
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              project: resolvedPath,
+              projectType: serverState.activeProjectType,
+              focus,
+              filesFound: keyFiles.length,
+              keyFiles: keyFiles.slice(0, 20),
+              rulesApplied: filteredRules.map(r => ({ name: r.name, category: r.category })),
+              instructions: `Review this ${serverState.activeProjectType || 'unknown'} project focusing on ${focus}. Key files listed above.`
+            }, null, 2)
+          }]
+        };
+      }
+      
       default:
         return { content: [{ type: 'text', text: `Unknown tool: ${name}` }] };
     }
@@ -2169,12 +2346,22 @@ server.setRequestHandler(ListPromptsRequestSchema, async () => {
       },
       {
         name: 'code_review',
-        description: 'Review code following the active rules and best practices',
+        description: 'Review code from file, URL, or pasted code against active rules',
         arguments: [
           {
+            name: 'filePath',
+            description: 'Local file path to review (optional)',
+            required: false
+          },
+          {
+            name: 'url',
+            description: 'URL to fetch and review (optional)',
+            required: false
+          },
+          {
             name: 'code',
-            description: 'Code to review',
-            required: true
+            description: 'Code snippet to review (optional)',
+            required: false
           }
         ]
       },
@@ -2342,13 +2529,38 @@ Please:
     }
     
     case 'code_review': {
-      const code = promptArgs?.code || '';
+      const { filePath, url, code } = promptArgs as { filePath?: string; url?: string; code?: string } || {};
       const projectName = serverState.activeProjectType 
         ? SUPPORTED_PROJECTS[serverState.activeProjectType].name 
         : 'the current project';
       
+      let codeToReview = code || '';
+      let source = 'provided code';
+      
+      // Try to read from file if specified
+      if (filePath && !codeToReview) {
+        try {
+          const fs = await import('fs');
+          const path = await import('path');
+          const resolvedPath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
+          if (fs.existsSync(resolvedPath)) {
+            codeToReview = fs.readFileSync(resolvedPath, 'utf-8');
+            source = filePath;
+          }
+        } catch { /* ignore */ }
+      }
+      
+      // Try to fetch from URL if specified
+      if (url && !codeToReview) {
+        try {
+          const response = await fetch(url);
+          codeToReview = await response.text();
+          source = url;
+        } catch { /* ignore */ }
+      }
+      
       const rules = serverState.loadedRules
-        .filter(r => serverState.activeConfiguration?.selectedRules.includes(r.id))
+        .filter(r => !serverState.activeConfiguration || serverState.activeConfiguration.selectedRules.includes(r.id))
         .map(r => `- ${r.name}: ${r.description}`)
         .join('\n');
       
@@ -2359,13 +2571,16 @@ Please:
             type: 'text',
             text: `Review the following code for ${projectName}.
 
+Source: ${source}
+
 Active Rules:
 ${rules || 'No specific rules selected. Using general best practices.'}
 
 Code to Review:
 \`\`\`
-${code}
+${codeToReview.substring(0, 15000)}
 \`\`\`
+${codeToReview.length > 15000 ? '\n(Code truncated for length)' : ''}
 
 Please analyze for:
 1. Compliance with coding standards
