@@ -18,6 +18,7 @@ import * as knowledgeProvider from './resources/knowledgeProvider.js';
 import * as ruleManager from './services/ruleManager.js';
 import * as webDocs from './services/webDocumentation.js';
 import * as cursorDirectory from './services/cursorDirectory.js';
+import * as autoDetect from './services/autoDetect.js';
 
 // Server state
 const serverState: ServerState = {
@@ -31,7 +32,7 @@ const serverState: ServerState = {
 const server = new Server(
   {
     name: 'stackguide-mcp',
-    version: '1.0.0',
+    version: '1.1.0',
   },
   {
     capabilities: {
@@ -47,6 +48,65 @@ const server = new Server(
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
+      // Smart Setup Tools (NEW!)
+      {
+        name: 'auto_setup',
+        description: 'Automatically detect your project type, configure context, and suggest rules. Just provide your project path and StackGuide will do the rest!',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            projectPath: {
+              type: 'string',
+              description: 'Path to your project directory. Use "." for current directory.'
+            }
+          },
+          required: ['projectPath']
+        }
+      },
+      {
+        name: 'detect_project',
+        description: 'Analyze a project directory to detect the framework, languages, and suggest the best configuration',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            projectPath: {
+              type: 'string',
+              description: 'Path to your project directory'
+            }
+          },
+          required: ['projectPath']
+        }
+      },
+      {
+        name: 'suggest_rules',
+        description: 'Get personalized rule suggestions based on your project type and current setup',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            projectType: {
+              type: 'string',
+              description: 'Project type to get suggestions for',
+              enum: Object.keys(SUPPORTED_PROJECTS)
+            }
+          },
+          required: []
+        }
+      },
+      {
+        name: 'quick_start',
+        description: 'Get a quick start guide for your detected or selected project type. Perfect for new users!',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            projectPath: {
+              type: 'string',
+              description: 'Path to analyze (optional if project type already selected)'
+            }
+          },
+          required: []
+        }
+      },
+      
       // Project Type Tools
       {
         name: 'list_project_types',
@@ -733,6 +793,181 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   
   try {
     switch (name) {
+      // Smart Setup Tools
+      case 'auto_setup': {
+        const { projectPath } = args as { projectPath: string };
+        const resolvedPath = projectPath === '.' ? process.cwd() : projectPath;
+        
+        // Detect project
+        const detection = autoDetect.detectProjectType(resolvedPath);
+        
+        if (!detection.detected || !detection.projectType) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                message: 'Could not auto-detect project type',
+                hint: 'Please use select_project_type to manually choose your project type',
+                availableTypes: Object.keys(SUPPORTED_PROJECTS)
+              }, null, 2)
+            }]
+          };
+        }
+        
+        // Auto-configure
+        const projectType = detection.projectType as ProjectType;
+        const project = SUPPORTED_PROJECTS[projectType];
+        
+        serverState.activeProjectType = projectType;
+        serverState.loadedRules = rulesProvider.getRulesForProject(projectType);
+        serverState.loadedKnowledge = knowledgeProvider.getKnowledgeForProject(projectType);
+        
+        const setupInstructions = autoDetect.getSetupInstructions(projectType);
+        
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              message: `✅ Auto-configured for ${project.name}`,
+              detection: {
+                projectType: detection.projectType,
+                confidence: detection.confidence,
+                languages: detection.languages,
+                frameworks: detection.frameworks,
+                indicators: detection.indicators
+              },
+              configured: {
+                rulesLoaded: serverState.loadedRules.length,
+                knowledgeLoaded: serverState.loadedKnowledge.length,
+                rules: serverState.loadedRules.map(r => r.name)
+              },
+              suggestions: detection.suggestions.slice(0, 5),
+              nextSteps: [
+                'Use get_full_context to see all loaded rules',
+                'Use browse_cursor_directory to find community rules',
+                'Use save_configuration to save this setup'
+              ],
+              setupGuide: setupInstructions
+            }, null, 2)
+          }]
+        };
+      }
+      
+      case 'detect_project': {
+        const { projectPath } = args as { projectPath: string };
+        const resolvedPath = projectPath === '.' ? process.cwd() : projectPath;
+        
+        const detection = autoDetect.detectProjectType(resolvedPath);
+        const quickStart = autoDetect.generateQuickStart(detection);
+        
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              ...detection,
+              quickStart
+            }, null, 2)
+          }]
+        };
+      }
+      
+      case 'suggest_rules': {
+        const { projectType } = args as { projectType?: ProjectType };
+        const pt = projectType || serverState.activeProjectType;
+        
+        if (!pt) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                error: 'No project type specified or selected',
+                hint: 'Use auto_setup or select_project_type first, or provide projectType parameter'
+              }, null, 2)
+            }]
+          };
+        }
+        
+        const suggestions = autoDetect.getSuggestions(pt);
+        const builtInRules = rulesProvider.getRulesForProject(pt);
+        const cursorCategories = cursorDirectory.getCursorDirectoryCategories()
+          .filter(cat => pt.toLowerCase().includes(cat) || cat.includes(pt.split('-')[0]));
+        
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              projectType: pt,
+              suggestions: suggestions,
+              builtInRules: builtInRules.map(r => ({ id: r.id, name: r.name, category: r.category })),
+              recommendedCursorCategories: cursorCategories.length > 0 ? cursorCategories : ['Check browse_cursor_directory for all categories'],
+              tips: [
+                'Use browse_cursor_directory to import community rules',
+                'Use create_rule to add your own custom rules',
+                'Use save_configuration to persist your setup'
+              ]
+            }, null, 2)
+          }]
+        };
+      }
+      
+      case 'quick_start': {
+        const { projectPath } = args as { projectPath?: string };
+        
+        let detection: autoDetect.DetectionResult | null = null;
+        
+        if (projectPath) {
+          const resolvedPath = projectPath === '.' ? process.cwd() : projectPath;
+          detection = autoDetect.detectProjectType(resolvedPath);
+        } else if (serverState.activeProjectType) {
+          // Create a pseudo-detection from active state
+          detection = {
+            detected: true,
+            projectType: serverState.activeProjectType,
+            confidence: 'high',
+            indicators: ['Already configured'],
+            suggestions: autoDetect.getSuggestions(serverState.activeProjectType),
+            frameworks: SUPPORTED_PROJECTS[serverState.activeProjectType]?.frameworks || [],
+            languages: SUPPORTED_PROJECTS[serverState.activeProjectType]?.languages || []
+          };
+        }
+        
+        if (!detection) {
+          return {
+            content: [{
+              type: 'text',
+              text: `# StackGuide Quick Start
+
+Welcome! Let's get you set up.
+
+## Option 1: Auto-detect (Recommended)
+\`\`\`
+auto_setup projectPath:"."
+\`\`\`
+
+## Option 2: Manual selection
+\`\`\`
+select_project_type projectType:"react-node"
+\`\`\`
+
+## Available project types:
+${Object.values(SUPPORTED_PROJECTS).map(p => `- **${p.type}**: ${p.name}`).join('\n')}
+
+Just tell me about your project and I'll help you configure!`
+            }]
+          };
+        }
+        
+        const quickStart = autoDetect.generateQuickStart(detection);
+        return {
+          content: [{
+            type: 'text',
+            text: quickStart
+          }]
+        };
+      }
+      
       // Project Type Tools
       case 'list_project_types': {
         const projects = Object.values(SUPPORTED_PROJECTS).map(p => ({
@@ -1872,6 +2107,22 @@ server.setRequestHandler(ListPromptsRequestSchema, async () => {
   return {
     prompts: [
       {
+        name: 'welcome',
+        description: 'Get started with StackGuide - interactive setup wizard',
+        arguments: []
+      },
+      {
+        name: 'configure_project',
+        description: 'Smart project configuration with auto-detection and suggestions',
+        arguments: [
+          {
+            name: 'projectPath',
+            description: 'Path to your project (use "." for current directory)',
+            required: false
+          }
+        ]
+      },
+      {
         name: 'setup_project',
         description: 'Initialize context for a new project',
         arguments: [
@@ -1912,6 +2163,115 @@ server.setRequestHandler(GetPromptRequestSchema, async (request) => {
   const { name, arguments: promptArgs } = request.params;
   
   switch (name) {
+    case 'welcome': {
+      const projectTypes = Object.values(SUPPORTED_PROJECTS)
+        .map(p => `- **${p.type}**: ${p.name} (${p.languages.join(', ')})`)
+        .join('\n');
+      
+      return {
+        messages: [{
+          role: 'user',
+          content: {
+            type: 'text',
+            text: `# Welcome to StackGuide! 👋
+
+I'm your AI coding context manager. I help you load the right rules, standards, and knowledge for your project.
+
+## Quick Start
+
+**Option 1: Auto-detect (Recommended)**
+Just tell me: "Set up my project" and I'll analyze your codebase and configure everything automatically.
+
+**Option 2: Tell me about your project**
+Say something like:
+- "I'm working on a React app with Node.js backend"
+- "This is a Django REST API project"
+- "Configure for Next.js with TypeScript"
+
+## Supported Project Types
+${projectTypes}
+
+## What I Can Do
+- 📋 Load coding standards and best practices for your stack
+- 🔍 Browse and import rules from cursor.directory
+- 📚 Provide architecture patterns and solutions
+- 💾 Save configurations for your projects
+- 🌐 Fetch and cache documentation from any URL
+
+## Ready?
+Just describe your project and I'll configure everything for you!`
+          }
+        }]
+      };
+    }
+    
+    case 'configure_project': {
+      const projectPath = promptArgs?.projectPath || '.';
+      const resolvedPath = projectPath === '.' ? process.cwd() : projectPath;
+      
+      let detection: autoDetect.DetectionResult | null = null;
+      try {
+        detection = autoDetect.detectProjectType(resolvedPath);
+      } catch {
+        // Path might not exist or not accessible
+      }
+      
+      if (detection?.detected && detection.projectType) {
+        const suggestions = detection.suggestions.slice(0, 5);
+        return {
+          messages: [{
+            role: 'user',
+            content: {
+              type: 'text',
+              text: `# Project Detected! 🎯
+
+**Type**: ${detection.projectType}
+**Confidence**: ${detection.confidence}
+**Languages**: ${detection.languages.join(', ')}
+**Frameworks**: ${detection.frameworks.join(', ')}
+
+## How I detected this:
+${detection.indicators.map(i => `- ${i}`).join('\n')}
+
+## Recommended Setup
+
+### Suggested Rules:
+${suggestions.map(s => `- ${s}`).join('\n')}
+
+### Next Steps:
+1. Run \`auto_setup projectPath:"${projectPath}"\` to configure automatically
+2. Or run \`select_project_type projectType:"${detection.projectType}"\` to activate manually
+3. Browse community rules: \`browse_cursor_directory category:"${detection.projectType.split('-')[0]}"\`
+
+Would you like me to set this up for you?`
+            }
+          }]
+        };
+      }
+      
+      return {
+        messages: [{
+          role: 'user',
+          content: {
+            type: 'text',
+            text: `# Let's Configure Your Project 🔧
+
+I couldn't auto-detect the project type from the path provided.
+
+## Tell me about your project:
+- What framework are you using? (React, Django, Next.js, etc.)
+- What language? (TypeScript, Python, etc.)
+- Is it a full-stack app, API, or frontend-only?
+
+## Or choose from available types:
+${Object.values(SUPPORTED_PROJECTS).map(p => `- **${p.type}**: ${p.name}`).join('\n')}
+
+Just tell me and I'll set everything up!`
+          }
+        }]
+      };
+    }
+    
     case 'setup_project': {
       const projectType = promptArgs?.projectType as ProjectType;
       const project = SUPPORTED_PROJECTS[projectType];
