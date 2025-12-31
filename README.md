@@ -377,64 +377,6 @@ Use import_cursor_directory_rule with:
 
 This fetches the rule from cursor.directory and saves it to your local rules collection.
 
-## Publishing to npm
-
-### Prerequisites
-
-1. Create an npm account at [npmjs.com](https://www.npmjs.com/)
-2. Login to npm:
-   ```bash
-   npm login
-   ```
-
-### Steps to Publish
-
-1. **Update version** in `package.json`:
-   ```bash
-   npm version patch  # or minor, major
-   ```
-
-2. **Build the project**:
-   ```bash
-   npm run build
-   ```
-
-3. **Test locally** (optional):
-   ```bash
-   npm link
-   stackguide-mcp  # Test the command
-   npm unlink
-   ```
-
-4. **Publish to npm**:
-   ```bash
-   npm publish --access public
-   ```
-
-   Note: The package is scoped (`@stackguide/mcp-server`), so you need `--access public` for the first publish.
-
-5. **Verify publication**:
-   ```bash
-   npm view @stackguide/mcp-server
-   ```
-
-### Updating the Published Package
-
-```bash
-npm version patch  # Bump version
-npm run build
-npm publish
-```
-
-### Publishing Checklist
-
-- [ ] All tests pass
-- [ ] README is up to date
-- [ ] Version is bumped
-- [ ] Build succeeds
-- [ ] `main` and `bin` fields in package.json point to correct files
-- [ ] Keywords and description are accurate
-
 ## Contributing
 
 1. Fork the repository
