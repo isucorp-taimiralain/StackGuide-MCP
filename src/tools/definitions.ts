@@ -95,7 +95,7 @@ export const toolDefinitions = [
   },
   {
     name: 'review',
-    description: 'Review code against active rules. Reviews local files, URLs, or your entire project.',
+    description: 'Analyze code for issues using pattern matching. Detects security vulnerabilities, performance problems, coding standard violations, and architecture issues. Returns a score (0-100) and detailed report with suggestions. Works on files, URLs, or entire projects.',
     inputSchema: {
       type: 'object',
       properties: {
