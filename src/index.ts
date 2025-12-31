@@ -48,44 +48,20 @@ const server = new Server(
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
-      // Smart Setup Tools (NEW!)
+      // ==================== CORE TOOLS (5) ====================
       {
-        name: 'auto_setup',
-        description: 'Automatically detect your project type, configure context, and suggest rules. Just provide your project path and StackGuide will do the rest!',
+        name: 'setup',
+        description: 'Configure StackGuide for your project. Auto-detects project type or lets you specify one manually.',
         inputSchema: {
           type: 'object',
           properties: {
-            projectPath: {
+            path: {
               type: 'string',
-              description: 'Path to your project directory. Use "." for current directory.'
-            }
-          },
-          required: ['projectPath']
-        }
-      },
-      {
-        name: 'detect_project',
-        description: 'Analyze a project directory to detect the framework, languages, and suggest the best configuration',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            projectPath: {
+              description: 'Project path (default: current directory)'
+            },
+            type: {
               type: 'string',
-              description: 'Path to your project directory'
-            }
-          },
-          required: ['projectPath']
-        }
-      },
-      {
-        name: 'suggest_rules',
-        description: 'Get personalized rule suggestions based on your project type and current setup',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            projectType: {
-              type: 'string',
-              description: 'Project type to get suggestions for',
+              description: 'Project type to use (auto-detected if not specified)',
               enum: Object.keys(SUPPORTED_PROJECTS)
             }
           },
@@ -93,730 +69,233 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         }
       },
       {
-        name: 'quick_start',
-        description: 'Get a quick start guide for your detected or selected project type. Perfect for new users!',
+        name: 'context',
+        description: 'Get current context with all loaded rules and knowledge. Use this to see what StackGuide has configured.',
         inputSchema: {
           type: 'object',
           properties: {
-            projectPath: {
-              type: 'string',
-              description: 'Path to analyze (optional if project type already selected)'
-            }
-          },
-          required: []
-        }
-      },
-      
-      // Project Type Tools
-      {
-        name: 'list_project_types',
-        description: 'List all supported project types (Python/Django, React/Node, etc.)',
-        inputSchema: {
-          type: 'object',
-          properties: {},
-          required: []
-        }
-      },
-      {
-        name: 'select_project_type',
-        description: 'Select and activate a project type to load its context, rules and knowledge',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            projectType: {
-              type: 'string',
-              description: 'The project type to select (e.g., python-django, react-node)',
-              enum: Object.keys(SUPPORTED_PROJECTS)
-            }
-          },
-          required: ['projectType']
-        }
-      },
-      {
-        name: 'get_current_context',
-        description: 'Get the currently active project context with loaded rules and knowledge',
-        inputSchema: {
-          type: 'object',
-          properties: {},
-          required: []
-        }
-      },
-      
-      // Rules Tools
-      {
-        name: 'list_rules',
-        description: 'List all available rules for the current or specified project type',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            projectType: {
-              type: 'string',
-              description: 'Project type (uses active project if not specified)',
-              enum: Object.keys(SUPPORTED_PROJECTS)
-            },
-            category: {
-              type: 'string',
-              description: 'Filter by category',
-              enum: ['coding-standards', 'best-practices', 'security', 'performance', 'architecture', 'testing', 'documentation', 'naming-conventions']
-            }
-          },
-          required: []
-        }
-      },
-      {
-        name: 'get_rule',
-        description: 'Get the full content of a specific rule by ID',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            ruleId: {
-              type: 'string',
-              description: 'The ID of the rule to retrieve'
-            }
-          },
-          required: ['ruleId']
-        }
-      },
-      {
-        name: 'select_rules',
-        description: 'Select which rules to include in the active context',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            ruleIds: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'Array of rule IDs to select'
-            }
-          },
-          required: ['ruleIds']
-        }
-      },
-      {
-        name: 'search_rules',
-        description: 'Search rules by keyword or term',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            searchTerm: {
-              type: 'string',
-              description: 'Term to search for in rules'
-            },
-            projectType: {
-              type: 'string',
-              description: 'Project type to search in',
-              enum: Object.keys(SUPPORTED_PROJECTS)
-            }
-          },
-          required: ['searchTerm']
-        }
-      },
-      
-      // Knowledge Tools
-      {
-        name: 'list_knowledge',
-        description: 'List all knowledge base files for the current or specified project type',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            projectType: {
-              type: 'string',
-              description: 'Project type (uses active project if not specified)',
-              enum: Object.keys(SUPPORTED_PROJECTS)
-            },
-            category: {
-              type: 'string',
-              description: 'Filter by category',
-              enum: ['patterns', 'common-issues', 'architecture', 'snippets', 'workflows', 'troubleshooting']
-            }
-          },
-          required: []
-        }
-      },
-      {
-        name: 'get_knowledge',
-        description: 'Get the full content of a specific knowledge file by ID',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            knowledgeId: {
-              type: 'string',
-              description: 'The ID of the knowledge file to retrieve'
-            }
-          },
-          required: ['knowledgeId']
-        }
-      },
-      {
-        name: 'select_knowledge',
-        description: 'Select which knowledge files to include in the active context',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            knowledgeIds: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'Array of knowledge file IDs to select'
-            }
-          },
-          required: ['knowledgeIds']
-        }
-      },
-      {
-        name: 'search_knowledge',
-        description: 'Search knowledge base by keyword or term',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            searchTerm: {
-              type: 'string',
-              description: 'Term to search for'
-            },
-            projectType: {
-              type: 'string',
-              description: 'Project type to search in',
-              enum: Object.keys(SUPPORTED_PROJECTS)
-            }
-          },
-          required: ['searchTerm']
-        }
-      },
-      
-      // Configuration Tools
-      {
-        name: 'save_configuration',
-        description: 'Save the current context configuration for future use',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            name: {
-              type: 'string',
-              description: 'Name for this configuration'
-            }
-          },
-          required: ['name']
-        }
-      },
-      {
-        name: 'load_configuration',
-        description: 'Load a previously saved configuration',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            configurationId: {
-              type: 'string',
-              description: 'ID of the configuration to load'
-            }
-          },
-          required: ['configurationId']
-        }
-      },
-      {
-        name: 'list_configurations',
-        description: 'List all saved configurations',
-        inputSchema: {
-          type: 'object',
-          properties: {},
-          required: []
-        }
-      },
-      {
-        name: 'delete_configuration',
-        description: 'Delete a saved configuration',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            configurationId: {
-              type: 'string',
-              description: 'ID of the configuration to delete'
-            }
-          },
-          required: ['configurationId']
-        }
-      },
-      {
-        name: 'export_configuration',
-        description: 'Export a configuration as JSON for sharing',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            configurationId: {
-              type: 'string',
-              description: 'ID of the configuration to export'
-            }
-          },
-          required: ['configurationId']
-        }
-      },
-      {
-        name: 'import_configuration',
-        description: 'Import a configuration from JSON',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            jsonConfig: {
-              type: 'string',
-              description: 'JSON string of the configuration to import'
-            }
-          },
-          required: ['jsonConfig']
-        }
-      },
-      
-      // Context Tools
-      {
-        name: 'get_full_context',
-        description: 'Get the complete active context with all selected rules and knowledge combined',
-        inputSchema: {
-          type: 'object',
-          properties: {},
-          required: []
-        }
-      },
-      {
-        name: 'add_custom_rule',
-        description: 'Add a custom rule to the current configuration',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            name: {
-              type: 'string',
-              description: 'Name of the custom rule'
-            },
-            category: {
-              type: 'string',
-              description: 'Category of the rule',
-              enum: ['coding-standards', 'best-practices', 'security', 'performance', 'architecture', 'testing', 'documentation', 'naming-conventions']
-            },
-            content: {
-              type: 'string',
-              description: 'The rule content in markdown format'
-            },
-            description: {
-              type: 'string',
-              description: 'Brief description of the rule'
-            }
-          },
-          required: ['name', 'category', 'content']
-        }
-      },
-      
-      // ==================== DYNAMIC RULE MANAGEMENT ====================
-      {
-        name: 'create_rule',
-        description: 'Create a new custom rule for the specified project type. The rule will be persisted and available in future sessions.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            projectType: {
-              type: 'string',
-              description: 'Project type for this rule',
-              enum: Object.keys(SUPPORTED_PROJECTS)
-            },
-            name: {
-              type: 'string',
-              description: 'Name of the rule'
-            },
-            category: {
-              type: 'string',
-              description: 'Category of the rule',
-              enum: ['coding-standards', 'best-practices', 'security', 'performance', 'architecture', 'testing', 'documentation', 'naming-conventions']
-            },
-            content: {
-              type: 'string',
-              description: 'The rule content in markdown format'
-            },
-            description: {
-              type: 'string',
-              description: 'Brief description of the rule'
-            }
-          },
-          required: ['projectType', 'name', 'category', 'content']
-        }
-      },
-      {
-        name: 'create_rule_from_template',
-        description: 'Create a new rule using a predefined template (coding-standard, best-practice, security, architecture, testing)',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            projectType: {
-              type: 'string',
-              description: 'Project type for this rule',
-              enum: Object.keys(SUPPORTED_PROJECTS)
-            },
-            templateId: {
-              type: 'string',
-              description: 'Template to use',
-              enum: ['coding-standard', 'best-practice', 'security', 'architecture', 'testing']
-            },
-            name: {
-              type: 'string',
-              description: 'Name for the new rule'
-            },
-            category: {
-              type: 'string',
-              description: 'Category of the rule',
-              enum: ['coding-standards', 'best-practices', 'security', 'performance', 'architecture', 'testing', 'documentation', 'naming-conventions']
-            },
-            description: {
-              type: 'string',
-              description: 'Description for the rule'
-            },
-            language: {
-              type: 'string',
-              description: 'Programming language for code examples (default: typescript)'
-            }
-          },
-          required: ['projectType', 'templateId', 'name', 'category', 'description']
-        }
-      },
-      {
-        name: 'list_rule_templates',
-        description: 'List all available rule templates',
-        inputSchema: {
-          type: 'object',
-          properties: {},
-          required: []
-        }
-      },
-      {
-        name: 'get_rule_template',
-        description: 'Get the content of a specific rule template',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            templateId: {
-              type: 'string',
-              description: 'Template ID',
-              enum: ['coding-standard', 'best-practice', 'security', 'architecture', 'testing']
-            }
-          },
-          required: ['templateId']
-        }
-      },
-      {
-        name: 'update_rule',
-        description: 'Update an existing user-created rule',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            ruleId: {
-              type: 'string',
-              description: 'ID of the rule to update (must be a user-created rule starting with "user-")'
-            },
-            name: {
-              type: 'string',
-              description: 'New name for the rule'
-            },
-            content: {
-              type: 'string',
-              description: 'New content for the rule'
-            },
-            description: {
-              type: 'string',
-              description: 'New description'
-            },
-            enabled: {
+            full: {
               type: 'boolean',
-              description: 'Enable or disable the rule'
+              description: 'Include full rule/knowledge content (default: false, shows summary)'
             }
           },
-          required: ['ruleId']
-        }
-      },
-      {
-        name: 'delete_rule',
-        description: 'Delete a user-created rule',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            ruleId: {
-              type: 'string',
-              description: 'ID of the rule to delete (must be a user-created rule starting with "user-")'
-            }
-          },
-          required: ['ruleId']
-        }
-      },
-      {
-        name: 'list_user_rules',
-        description: 'List all user-created rules for a project type',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            projectType: {
-              type: 'string',
-              description: 'Project type to list rules for',
-              enum: Object.keys(SUPPORTED_PROJECTS)
-            }
-          },
-          required: ['projectType']
-        }
-      },
-      {
-        name: 'export_user_rules',
-        description: 'Export all user-created rules as JSON for backup or sharing',
-        inputSchema: {
-          type: 'object',
-          properties: {},
           required: []
         }
       },
       {
-        name: 'import_user_rules',
-        description: 'Import user rules from JSON',
+        name: 'rules',
+        description: 'Manage rules: list, search, get, or select rules for your project.',
         inputSchema: {
           type: 'object',
           properties: {
-            jsonRules: {
+            action: {
               type: 'string',
-              description: 'JSON string containing rules to import'
-            }
-          },
-          required: ['jsonRules']
-        }
-      },
-      
-      // ==================== WEB DOCUMENTATION ====================
-      {
-        name: 'fetch_web_docs',
-        description: 'Fetch documentation from a web URL and add it to the knowledge base',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            url: {
-              type: 'string',
-              description: 'URL of the documentation to fetch'
+              description: 'Action to perform',
+              enum: ['list', 'search', 'get', 'select']
             },
-            projectType: {
-              type: 'string',
-              description: 'Associate with a project type',
-              enum: Object.keys(SUPPORTED_PROJECTS)
-            },
-            category: {
-              type: 'string',
-              description: 'Category for the documentation'
-            },
-            tags: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'Tags for easy searching'
-            }
-          },
-          required: ['url']
-        }
-      },
-      {
-        name: 'fetch_multiple_docs',
-        description: 'Fetch documentation from multiple URLs at once',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            urls: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'List of URLs to fetch'
-            },
-            projectType: {
-              type: 'string',
-              description: 'Associate with a project type',
-              enum: Object.keys(SUPPORTED_PROJECTS)
-            }
-          },
-          required: ['urls']
-        }
-      },
-      {
-        name: 'get_web_doc',
-        description: 'Get the content of a previously fetched web document',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            idOrUrl: {
-              type: 'string',
-              description: 'ID or URL of the document'
-            }
-          },
-          required: ['idOrUrl']
-        }
-      },
-      {
-        name: 'search_web_docs',
-        description: 'Search through fetched web documentation',
-        inputSchema: {
-          type: 'object',
-          properties: {
             query: {
               type: 'string',
-              description: 'Search query'
-            }
-          },
-          required: ['query']
-        }
-      },
-      {
-        name: 'list_web_docs',
-        description: 'List all fetched web documentation',
-        inputSchema: {
-          type: 'object',
-          properties: {},
-          required: []
-        }
-      },
-      {
-        name: 'get_suggested_docs',
-        description: 'Get suggested documentation URLs for a project type',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            projectType: {
-              type: 'string',
-              description: 'Project type',
-              enum: Object.keys(SUPPORTED_PROJECTS)
-            }
-          },
-          required: ['projectType']
-        }
-      },
-      {
-        name: 'remove_web_doc',
-        description: 'Remove a fetched web document from cache',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            idOrUrl: {
-              type: 'string',
-              description: 'ID or URL of the document to remove'
-            }
-          },
-          required: ['idOrUrl']
-        }
-      },
-      
-      // ==================== CURSOR DIRECTORY INTEGRATION ====================
-      {
-        name: 'browse_cursor_directory',
-        description: 'Browse rules from cursor.directory by category. Available categories include: typescript, python, react, next.js, vue, django, fastapi, etc.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            category: {
-              type: 'string',
-              description: 'Category to browse (e.g., typescript, python, react, next.js, vue, django)'
-            }
-          },
-          required: ['category']
-        }
-      },
-      {
-        name: 'search_cursor_directory',
-        description: 'Search for rules on cursor.directory',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'Search query (e.g., "react hooks", "python fastapi", "typescript best practices")'
-            }
-          },
-          required: ['query']
-        }
-      },
-      {
-        name: 'get_cursor_directory_rule',
-        description: 'Get a specific rule from cursor.directory by its slug',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            slug: {
-              type: 'string',
-              description: 'Rule slug from cursor.directory URL (e.g., "nextjs-react-typescript-cursor-rules")'
+              description: 'Search term or rule ID (for search/get actions)'
+            },
+            ids: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Rule IDs to select (for select action)'
             },
             category: {
               type: 'string',
-              description: 'Category of the rule'
-            }
-          },
-          required: ['slug']
-        }
-      },
-      {
-        name: 'list_cursor_directory_categories',
-        description: 'List all available categories on cursor.directory',
-        inputSchema: {
-          type: 'object',
-          properties: {},
-          required: []
-        }
-      },
-      {
-        name: 'get_popular_cursor_rules',
-        description: 'Get popular/featured rules from cursor.directory',
-        inputSchema: {
-          type: 'object',
-          properties: {},
-          required: []
-        }
-      },
-      {
-        name: 'import_cursor_directory_rule',
-        description: 'Import a rule from cursor.directory into your local rules collection',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            slug: {
-              type: 'string',
-              description: 'Rule slug from cursor.directory'
-            },
-            projectType: {
-              type: 'string',
-              description: 'Project type to import the rule into',
-              enum: Object.keys(SUPPORTED_PROJECTS)
-            },
-            category: {
-              type: 'string',
-              description: 'Local category for the imported rule',
+              description: 'Filter by category',
               enum: ['coding-standards', 'best-practices', 'security', 'performance', 'architecture', 'testing']
             }
           },
-          required: ['slug', 'projectType']
+          required: []
         }
       },
-      
-      // ==================== CODE REVIEW TOOLS ====================
       {
-        name: 'review_file',
-        description: 'Review a local file against active rules. Works on your project files directly.',
+        name: 'knowledge',
+        description: 'Manage knowledge base: list, search, or get architecture patterns and solutions.',
         inputSchema: {
           type: 'object',
           properties: {
-            filePath: {
+            action: {
               type: 'string',
-              description: 'Path to the file to review (relative to project or absolute)'
+              description: 'Action to perform',
+              enum: ['list', 'search', 'get']
             },
-            url: {
+            query: {
               type: 'string',
-              description: 'Optional: URL to fetch and review instead of local file'
+              description: 'Search term or knowledge ID'
+            },
+            category: {
+              type: 'string',
+              description: 'Filter by category',
+              enum: ['patterns', 'common-issues', 'architecture', 'workflows']
             }
           },
           required: []
         }
       },
       {
-        name: 'review_project',
-        description: 'Review your entire project structure and key files against active rules',
+        name: 'review',
+        description: 'Review code against active rules. Reviews local files, URLs, or your entire project.',
         inputSchema: {
           type: 'object',
           properties: {
-            projectPath: {
+            file: {
               type: 'string',
-              description: 'Project path (default: current directory)'
+              description: 'File path to review'
+            },
+            url: {
+              type: 'string',
+              description: 'URL to fetch and review'
+            },
+            project: {
+              type: 'boolean',
+              description: 'Review entire project structure'
             },
             focus: {
               type: 'string',
               description: 'Focus area for review',
               enum: ['all', 'security', 'performance', 'architecture', 'coding-standards']
+            }
+          },
+          required: []
+        }
+      },
+      
+      // ==================== CURSOR DIRECTORY (2) ====================
+      {
+        name: 'cursor',
+        description: 'Browse, search, and import rules from cursor.directory community.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            action: {
+              type: 'string',
+              description: 'Action to perform',
+              enum: ['browse', 'search', 'popular', 'import', 'categories']
+            },
+            query: {
+              type: 'string',
+              description: 'Category to browse or search term'
+            },
+            slug: {
+              type: 'string',
+              description: 'Rule slug for import'
+            }
+          },
+          required: []
+        }
+      },
+      
+      // ==================== DOCS (1) ====================
+      {
+        name: 'docs',
+        description: 'Fetch and manage web documentation. Fetch URLs, search cached docs, or list available.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            action: {
+              type: 'string',
+              description: 'Action to perform',
+              enum: ['fetch', 'search', 'list', 'get', 'remove', 'suggest']
+            },
+            url: {
+              type: 'string',
+              description: 'URL to fetch or document ID'
+            },
+            urls: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Multiple URLs to fetch'
+            },
+            query: {
+              type: 'string',
+              description: 'Search query'
+            }
+          },
+          required: []
+        }
+      },
+      
+      // ==================== CONFIG (1) ====================
+      {
+        name: 'config',
+        description: 'Manage saved configurations: save, load, list, delete, export, or import.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            action: {
+              type: 'string',
+              description: 'Action to perform',
+              enum: ['save', 'load', 'list', 'delete', 'export', 'import']
+            },
+            name: {
+              type: 'string',
+              description: 'Configuration name (for save)'
+            },
+            id: {
+              type: 'string',
+              description: 'Configuration ID (for load/delete/export)'
+            },
+            json: {
+              type: 'string',
+              description: 'JSON string (for import)'
+            }
+          },
+          required: []
+        }
+      },
+      
+      // ==================== CUSTOM RULES (1) ====================
+      {
+        name: 'custom_rule',
+        description: 'Create, update, delete, or list custom rules for your project.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            action: {
+              type: 'string',
+              description: 'Action to perform',
+              enum: ['create', 'update', 'delete', 'list', 'export', 'import']
+            },
+            name: {
+              type: 'string',
+              description: 'Rule name'
+            },
+            content: {
+              type: 'string',
+              description: 'Rule content in markdown'
+            },
+            category: {
+              type: 'string',
+              description: 'Rule category',
+              enum: ['coding-standards', 'best-practices', 'security', 'performance', 'architecture', 'testing']
+            },
+            id: {
+              type: 'string',
+              description: 'Rule ID (for update/delete)'
+            },
+            json: {
+              type: 'string',
+              description: 'JSON string (for import)'
+            }
+          },
+          required: []
+        }
+      },
+      
+      // ==================== HELP (1) ====================
+      {
+        name: 'help',
+        description: 'Get help about StackGuide tools and how to use them.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            topic: {
+              type: 'string',
+              description: 'Help topic',
+              enum: ['setup', 'rules', 'review', 'cursor', 'docs', 'config', 'all']
             }
           },
           required: []
@@ -832,6 +311,573 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   
   try {
     switch (name) {
+      // ==================== UNIFIED TOOLS ====================
+      
+      case 'setup': {
+        const { path: projectPath = '.', type: projectType } = args as { path?: string; type?: ProjectType };
+        const resolvedPath = projectPath === '.' ? process.cwd() : projectPath;
+        
+        // If type is specified, use it directly
+        if (projectType && SUPPORTED_PROJECTS[projectType]) {
+          const project = SUPPORTED_PROJECTS[projectType];
+          serverState.activeProjectType = projectType;
+          serverState.loadedRules = rulesProvider.getRulesForProject(projectType);
+          serverState.loadedKnowledge = knowledgeProvider.getKnowledgeForProject(projectType);
+          serverState.activeConfiguration = {
+            id: `setup-${projectType}-${Date.now()}`,
+            name: `${project.name} Configuration`,
+            projectType,
+            selectedRules: serverState.loadedRules.map(r => r.id),
+            selectedKnowledge: serverState.loadedKnowledge.map(k => k.id),
+            customRules: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                success: true,
+                message: `✅ Configured for ${project.name}`,
+                projectType,
+                rulesLoaded: serverState.loadedRules.length,
+                knowledgeLoaded: serverState.loadedKnowledge.length,
+                nextSteps: ['Use "context" to see loaded rules', 'Use "review" to analyze your code']
+              }, null, 2)
+            }]
+          };
+        }
+        
+        // Auto-detect project type
+        const detection = autoDetect.detectProjectType(resolvedPath);
+        
+        if (!detection.detected || !detection.projectType) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                success: false,
+                message: 'Could not auto-detect project type',
+                hint: 'Use setup with type parameter: setup type:"react-typescript"',
+                availableTypes: Object.keys(SUPPORTED_PROJECTS)
+              }, null, 2)
+            }]
+          };
+        }
+        
+        const detectedType = detection.projectType as ProjectType;
+        const project = SUPPORTED_PROJECTS[detectedType];
+        
+        serverState.activeProjectType = detectedType;
+        serverState.loadedRules = rulesProvider.getRulesForProject(detectedType);
+        serverState.loadedKnowledge = knowledgeProvider.getKnowledgeForProject(detectedType);
+        serverState.activeConfiguration = {
+          id: `auto-${detectedType}-${Date.now()}`,
+          name: `Auto - ${project.name}`,
+          projectType: detectedType,
+          selectedRules: serverState.loadedRules.map(r => r.id),
+          selectedKnowledge: serverState.loadedKnowledge.map(k => k.id),
+          customRules: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              message: `✅ Auto-configured for ${project.name}`,
+              detection: {
+                projectType: detectedType,
+                confidence: detection.confidence,
+                languages: detection.languages,
+                frameworks: detection.frameworks
+              },
+              rulesLoaded: serverState.loadedRules.length,
+              knowledgeLoaded: serverState.loadedKnowledge.length,
+              nextSteps: ['Use "context" to see loaded rules', 'Use "review" to analyze your code']
+            }, null, 2)
+          }]
+        };
+      }
+      
+      case 'context': {
+        const { full = false } = args as { full?: boolean };
+        
+        if (!serverState.activeProjectType) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                configured: false,
+                hint: 'Use "setup" to configure your project first'
+              }, null, 2)
+            }]
+          };
+        }
+        
+        const project = SUPPORTED_PROJECTS[serverState.activeProjectType];
+        
+        if (full) {
+          // Return full content
+          const rulesContent = serverState.loadedRules
+            .map(r => `## ${r.name}\n${r.content}`)
+            .join('\n\n---\n\n');
+          
+          const knowledgeContent = serverState.loadedKnowledge
+            .map(k => `## ${k.name}\n${k.content}`)
+            .join('\n\n---\n\n');
+          
+          return {
+            content: [{
+              type: 'text',
+              text: `# ${project.name} Context\n\n## Rules\n${rulesContent}\n\n## Knowledge\n${knowledgeContent}`
+            }]
+          };
+        }
+        
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              projectType: serverState.activeProjectType,
+              projectName: project.name,
+              languages: project.languages,
+              frameworks: project.frameworks,
+              rules: serverState.loadedRules.map(r => ({ id: r.id, name: r.name, category: r.category })),
+              knowledge: serverState.loadedKnowledge.map(k => ({ id: k.id, name: k.name, category: k.category })),
+              totalRules: serverState.loadedRules.length,
+              totalKnowledge: serverState.loadedKnowledge.length
+            }, null, 2)
+          }]
+        };
+      }
+      
+      case 'rules': {
+        const { action = 'list', query, ids, category } = args as { 
+          action?: string; query?: string; ids?: string[]; category?: string 
+        };
+        const pt = serverState.activeProjectType;
+        
+        switch (action) {
+          case 'list': {
+            let rules = pt ? rulesProvider.getRulesForProject(pt) : [];
+            if (category) {
+              rules = rules.filter(r => r.category === category);
+            }
+            return {
+              content: [{
+                type: 'text',
+                text: JSON.stringify({
+                  projectType: pt,
+                  count: rules.length,
+                  rules: rules.map(r => ({ id: r.id, name: r.name, category: r.category, description: r.description }))
+                }, null, 2)
+              }]
+            };
+          }
+          case 'search': {
+            if (!query) return { content: [{ type: 'text', text: 'Error: query required for search' }] };
+            const rules = pt ? rulesProvider.getRulesForProject(pt) : [];
+            const term = query.toLowerCase();
+            const matches = rules.filter(r => 
+              r.name.toLowerCase().includes(term) || 
+              r.content.toLowerCase().includes(term) ||
+              r.description?.toLowerCase().includes(term)
+            );
+            return {
+              content: [{
+                type: 'text',
+                text: JSON.stringify({ query, matches: matches.length, rules: matches.map(r => ({ id: r.id, name: r.name, category: r.category })) }, null, 2)
+              }]
+            };
+          }
+          case 'get': {
+            if (!query) return { content: [{ type: 'text', text: 'Error: query (rule ID) required' }] };
+            const rules = pt ? rulesProvider.getRulesForProject(pt) : [];
+            const rule = rules.find(r => r.id === query);
+            if (!rule) return { content: [{ type: 'text', text: `Rule not found: ${query}` }] };
+            return { content: [{ type: 'text', text: `# ${rule.name}\n\n${rule.content}` }] };
+          }
+          case 'select': {
+            if (!ids || ids.length === 0) return { content: [{ type: 'text', text: 'Error: ids required for select' }] };
+            if (serverState.activeConfiguration) {
+              serverState.activeConfiguration.selectedRules = ids;
+              serverState.activeConfiguration.updatedAt = new Date().toISOString();
+            }
+            return { content: [{ type: 'text', text: JSON.stringify({ success: true, selectedRules: ids.length }, null, 2) }] };
+          }
+          default:
+            return { content: [{ type: 'text', text: 'Actions: list, search, get, select' }] };
+        }
+      }
+      
+      case 'knowledge': {
+        const { action = 'list', query, category } = args as { action?: string; query?: string; category?: string };
+        const pt = serverState.activeProjectType;
+        
+        switch (action) {
+          case 'list': {
+            let items = pt ? knowledgeProvider.getKnowledgeForProject(pt) : [];
+            if (category) items = items.filter(k => k.category === category);
+            return {
+              content: [{
+                type: 'text',
+                text: JSON.stringify({
+                  projectType: pt,
+                  count: items.length,
+                  knowledge: items.map(k => ({ id: k.id, name: k.name, category: k.category }))
+                }, null, 2)
+              }]
+            };
+          }
+          case 'search': {
+            if (!query) return { content: [{ type: 'text', text: 'Error: query required' }] };
+            const items = pt ? knowledgeProvider.getKnowledgeForProject(pt) : [];
+            const term = query.toLowerCase();
+            const matches = items.filter(k => k.name.toLowerCase().includes(term) || k.content.toLowerCase().includes(term));
+            return { content: [{ type: 'text', text: JSON.stringify({ query, matches: matches.length, knowledge: matches.map(k => ({ id: k.id, name: k.name })) }, null, 2) }] };
+          }
+          case 'get': {
+            if (!query) return { content: [{ type: 'text', text: 'Error: query (knowledge ID) required' }] };
+            const items = pt ? knowledgeProvider.getKnowledgeForProject(pt) : [];
+            const item = items.find(k => k.id === query);
+            if (!item) return { content: [{ type: 'text', text: `Knowledge not found: ${query}` }] };
+            return { content: [{ type: 'text', text: `# ${item.name}\n\n${item.content}` }] };
+          }
+          default:
+            return { content: [{ type: 'text', text: 'Actions: list, search, get' }] };
+        }
+      }
+      
+      case 'review': {
+        const { file, url, project: reviewProject, focus = 'all' } = args as { 
+          file?: string; url?: string; project?: boolean; focus?: string 
+        };
+        
+        if (!serverState.activeProjectType) {
+          const detection = autoDetect.detectProjectType(process.cwd());
+          if (detection.detected && detection.projectType) {
+            const pt = detection.projectType as ProjectType;
+            serverState.activeProjectType = pt;
+            serverState.loadedRules = rulesProvider.getRulesForProject(pt);
+            serverState.loadedKnowledge = knowledgeProvider.getKnowledgeForProject(pt);
+          }
+        }
+        
+        const activeRules = serverState.loadedRules.filter(r => 
+          focus === 'all' || r.category === focus || r.category?.includes(focus)
+        );
+        
+        // Review project
+        if (reviewProject) {
+          const fs = await import('fs');
+          const path = await import('path');
+          const projectPath = process.cwd();
+          const keyFiles: string[] = [];
+          const exts = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs'];
+          
+          function scan(dir: string, depth = 0): void {
+            if (depth > 3) return;
+            try {
+              const items = fs.readdirSync(dir);
+              for (const item of items) {
+                if (item.startsWith('.') || ['node_modules', '__pycache__', 'venv', 'dist'].includes(item)) continue;
+                const full = path.join(dir, item);
+                const stat = fs.statSync(full);
+                if (stat.isDirectory()) scan(full, depth + 1);
+                else if (exts.some(e => item.endsWith(e))) keyFiles.push(path.relative(projectPath, full));
+              }
+            } catch { /* ignore */ }
+          }
+          scan(projectPath);
+          
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                type: 'project-review',
+                projectType: serverState.activeProjectType,
+                focus,
+                filesFound: keyFiles.length,
+                keyFiles: keyFiles.slice(0, 25),
+                rulesApplied: activeRules.map(r => r.name),
+                instructions: `Review this project focusing on ${focus}. Apply the listed rules.`
+              }, null, 2)
+            }]
+          };
+        }
+        
+        // Review file or URL
+        let content = '';
+        let source = '';
+        
+        if (url) {
+          try {
+            const response = await fetch(url);
+            content = await response.text();
+            source = url;
+          } catch (e) {
+            return { content: [{ type: 'text', text: `Error fetching URL: ${e}` }] };
+          }
+        } else if (file) {
+          const fs = await import('fs');
+          const path = await import('path');
+          const resolved = path.isAbsolute(file) ? file : path.join(process.cwd(), file);
+          if (!fs.existsSync(resolved)) {
+            return { content: [{ type: 'text', text: `File not found: ${resolved}` }] };
+          }
+          content = fs.readFileSync(resolved, 'utf-8');
+          source = file;
+        } else {
+          return { content: [{ type: 'text', text: 'Specify file, url, or project:true' }] };
+        }
+        
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              type: 'file-review',
+              source,
+              projectType: serverState.activeProjectType,
+              focus,
+              rulesApplied: activeRules.map(r => r.name),
+              code: content.substring(0, 12000),
+              truncated: content.length > 12000,
+              instructions: 'Review this code against the active rules.'
+            }, null, 2)
+          }]
+        };
+      }
+      
+      case 'cursor': {
+        const { action = 'categories', query, slug } = args as { action?: string; query?: string; slug?: string };
+        
+        switch (action) {
+          case 'categories':
+            const categories = cursorDirectory.getCursorDirectoryCategories();
+            return { content: [{ type: 'text', text: JSON.stringify({ categories }, null, 2) }] };
+          case 'popular':
+            const popular = await cursorDirectory.getPopularCursorDirectoryRules();
+            return { content: [{ type: 'text', text: JSON.stringify({ rules: popular }, null, 2) }] };
+          case 'browse':
+            if (!query) return { content: [{ type: 'text', text: 'Error: query (category) required' }] };
+            const browseRules = await cursorDirectory.browseCursorDirectoryCategory(query);
+            return { content: [{ type: 'text', text: JSON.stringify({ category: query, rules: browseRules }, null, 2) }] };
+          case 'search':
+            if (!query) return { content: [{ type: 'text', text: 'Error: query required' }] };
+            const searchResults = await cursorDirectory.searchCursorDirectory(query);
+            return { content: [{ type: 'text', text: JSON.stringify({ query, results: searchResults }, null, 2) }] };
+          case 'import':
+            if (!slug) return { content: [{ type: 'text', text: 'Error: slug required' }] };
+            const pt = serverState.activeProjectType || 'react-typescript';
+            const rule = await cursorDirectory.fetchCursorDirectoryRule(slug, 'best-practices');
+            if (!rule) return { content: [{ type: 'text', text: `Rule not found: ${slug}` }] };
+            const formatted = cursorDirectory.formatRuleForImport(rule);
+            const userRule = ruleManager.createUserRule(pt, 'best-practices', `cursor-${slug}`, formatted, rule.description);
+            return { content: [{ type: 'text', text: JSON.stringify({ success: true, imported: userRule.name, id: userRule.id }, null, 2) }] };
+          default:
+            return { content: [{ type: 'text', text: 'Actions: categories, popular, browse, search, import' }] };
+        }
+      }
+      
+      case 'docs': {
+        const { action = 'list', url, urls, query } = args as { action?: string; url?: string; urls?: string[]; query?: string };
+        const pt = serverState.activeProjectType;
+        
+        switch (action) {
+          case 'fetch':
+            if (!url) return { content: [{ type: 'text', text: 'Error: url required' }] };
+            const doc = await webDocs.fetchWebDocumentation(url, pt ? { projectType: pt } : undefined);
+            return { content: [{ type: 'text', text: JSON.stringify({ success: true, id: doc.id, title: doc.title }, null, 2) }] };
+          case 'list':
+            const allDocs = webDocs.listCachedDocuments();
+            return { content: [{ type: 'text', text: JSON.stringify({ count: allDocs.length, docs: allDocs.map(d => ({ id: d.id, title: d.title, url: d.url })) }, null, 2) }] };
+          case 'search':
+            if (!query) return { content: [{ type: 'text', text: 'Error: query required' }] };
+            const matches = webDocs.searchWebDocuments(query);
+            return { content: [{ type: 'text', text: JSON.stringify({ query, matches }, null, 2) }] };
+          case 'get':
+            if (!url) return { content: [{ type: 'text', text: 'Error: url/id required' }] };
+            const fetched = webDocs.getWebDocumentById(url) || webDocs.getWebDocumentByUrl(url);
+            if (!fetched) return { content: [{ type: 'text', text: 'Document not found' }] };
+            return { content: [{ type: 'text', text: `# ${fetched.title}\n\n${fetched.content}` }] };
+          case 'remove':
+            if (!url) return { content: [{ type: 'text', text: 'Error: url/id required' }] };
+            webDocs.removeFromCache(url);
+            return { content: [{ type: 'text', text: JSON.stringify({ success: true, removed: url }, null, 2) }] };
+          case 'suggest':
+            const suggestions = webDocs.getSuggestedDocs(pt || 'react-typescript');
+            return { content: [{ type: 'text', text: JSON.stringify({ suggestions }, null, 2) }] };
+          default:
+            return { content: [{ type: 'text', text: 'Actions: fetch, list, search, get, remove, suggest' }] };
+        }
+      }
+      
+      case 'config': {
+        const { action = 'list', name, id, json } = args as { action?: string; name?: string; id?: string; json?: string };
+        
+        switch (action) {
+          case 'save':
+            if (!name) return { content: [{ type: 'text', text: 'Error: name required' }] };
+            if (!serverState.activeConfiguration || !serverState.activeProjectType) return { content: [{ type: 'text', text: 'No active configuration to save' }] };
+            const saved = persistence.createConfiguration(name, serverState.activeProjectType, serverState.activeConfiguration.selectedRules, serverState.activeConfiguration.selectedKnowledge);
+            return { content: [{ type: 'text', text: JSON.stringify({ success: true, id: saved.id, name: saved.name }, null, 2) }] };
+          case 'load':
+            if (!id) return { content: [{ type: 'text', text: 'Error: id required' }] };
+            const loaded = persistence.getConfigurationById(id);
+            if (!loaded) return { content: [{ type: 'text', text: 'Configuration not found' }] };
+            serverState.activeConfiguration = loaded;
+            serverState.activeProjectType = loaded.projectType;
+            serverState.loadedRules = rulesProvider.getRulesForProject(loaded.projectType);
+            serverState.loadedKnowledge = knowledgeProvider.getKnowledgeForProject(loaded.projectType);
+            return { content: [{ type: 'text', text: JSON.stringify({ success: true, loaded: loaded.name }, null, 2) }] };
+          case 'list':
+            const configs = persistence.getAllConfigurations();
+            return { content: [{ type: 'text', text: JSON.stringify({ configurations: configs }, null, 2) }] };
+          case 'delete':
+            if (!id) return { content: [{ type: 'text', text: 'Error: id required' }] };
+            persistence.deleteConfiguration(id);
+            return { content: [{ type: 'text', text: JSON.stringify({ success: true, deleted: id }, null, 2) }] };
+          case 'export':
+            if (!id) return { content: [{ type: 'text', text: 'Error: id required' }] };
+            const toExport = persistence.exportConfiguration(id);
+            return { content: [{ type: 'text', text: toExport || 'Configuration not found' }] };
+          case 'import':
+            if (!json) return { content: [{ type: 'text', text: 'Error: json required' }] };
+            const imported = persistence.importConfiguration(json);
+            if (!imported) return { content: [{ type: 'text', text: 'Error: Invalid configuration JSON' }] };
+            return { content: [{ type: 'text', text: JSON.stringify({ success: true, imported: imported.id }, null, 2) }] };
+          default:
+            return { content: [{ type: 'text', text: 'Actions: save, load, list, delete, export, import' }] };
+        }
+      }
+      
+      case 'custom_rule': {
+        const { action = 'list', name, content, category, id, json } = args as { 
+          action?: string; name?: string; content?: string; category?: RuleCategory; id?: string; json?: string 
+        };
+        const pt = serverState.activeProjectType || 'react-typescript';
+        
+        switch (action) {
+          case 'create':
+            if (!name || !content || !category) return { content: [{ type: 'text', text: 'Error: name, content, category required' }] };
+            const created = ruleManager.createUserRule(pt, category, name, content);
+            return { content: [{ type: 'text', text: JSON.stringify({ success: true, id: created.id, name: created.name }, null, 2) }] };
+          case 'list':
+            const rules = ruleManager.getUserRules(pt);
+            return { content: [{ type: 'text', text: JSON.stringify({ projectType: pt, rules: rules.map(r => ({ id: r.id, name: r.name, category: r.category })) }, null, 2) }] };
+          case 'update':
+            if (!id) return { content: [{ type: 'text', text: 'Error: id required' }] };
+            const updated = ruleManager.updateUserRule(id, { name, content });
+            return { content: [{ type: 'text', text: JSON.stringify({ success: !!updated, rule: updated }, null, 2) }] };
+          case 'delete':
+            if (!id) return { content: [{ type: 'text', text: 'Error: id required' }] };
+            ruleManager.deleteUserRule(id);
+            return { content: [{ type: 'text', text: JSON.stringify({ success: true, deleted: id }, null, 2) }] };
+          case 'export':
+            const allRules = ruleManager.exportAllUserRules();
+            return { content: [{ type: 'text', text: allRules }] };
+          case 'import':
+            if (!json) return { content: [{ type: 'text', text: 'Error: json required' }] };
+            const importedCount = ruleManager.importUserRules(json);
+            return { content: [{ type: 'text', text: JSON.stringify({ success: true, imported: importedCount }, null, 2) }] };
+          default:
+            return { content: [{ type: 'text', text: 'Actions: create, list, update, delete, export, import' }] };
+        }
+      }
+      
+      case 'help': {
+        const { topic = 'all' } = args as { topic?: string };
+        
+        const helpContent: Record<string, string> = {
+          setup: `## setup
+Configure StackGuide for your project.
+
+**Auto-detect:** \`setup\` or \`setup path:"."\`
+**Manual:** \`setup type:"react-typescript"\`
+
+Available types: ${Object.keys(SUPPORTED_PROJECTS).join(', ')}`,
+          
+          rules: `## rules
+Manage coding rules.
+
+**List:** \`rules\` or \`rules action:"list"\`
+**Search:** \`rules action:"search" query:"security"\`
+**Get:** \`rules action:"get" query:"rule-id"\`
+**Select:** \`rules action:"select" ids:["id1","id2"]\``,
+          
+          review: `## review
+Review code against active rules.
+
+**File:** \`review file:"src/index.ts"\`
+**URL:** \`review url:"https://..."\`
+**Project:** \`review project:true\`
+**Focus:** \`review project:true focus:"security"\``,
+          
+          cursor: `## cursor
+Browse cursor.directory community rules.
+
+**Categories:** \`cursor\` or \`cursor action:"categories"\`
+**Popular:** \`cursor action:"popular"\`
+**Browse:** \`cursor action:"browse" query:"react"\`
+**Search:** \`cursor action:"search" query:"typescript"\`
+**Import:** \`cursor action:"import" slug:"rule-slug"\``,
+          
+          docs: `## docs
+Fetch and manage web documentation.
+
+**Fetch:** \`docs action:"fetch" url:"https://..."\`
+**List:** \`docs action:"list"\`
+**Search:** \`docs action:"search" query:"hooks"\``,
+          
+          config: `## config
+Save and load configurations.
+
+**Save:** \`config action:"save" name:"my-config"\`
+**Load:** \`config action:"load" id:"config-id"\`
+**List:** \`config action:"list"\``
+        };
+        
+        if (topic === 'all') {
+          return {
+            content: [{
+              type: 'text',
+              text: `# StackGuide Help
+
+## Quick Start
+1. \`setup\` - Auto-configure for your project
+2. \`context\` - See loaded rules
+3. \`review file:"src/index.ts"\` - Review your code
+
+## Available Tools
+- **setup** - Configure project
+- **context** - View current context  
+- **rules** - Manage rules
+- **knowledge** - Access knowledge base
+- **review** - Code review
+- **cursor** - Browse cursor.directory
+- **docs** - Web documentation
+- **config** - Save/load configurations
+- **custom_rule** - Create custom rules
+
+Use \`help topic:"setup"\` for details on a specific tool.`
+            }]
+          };
+        }
+        
+        return {
+          content: [{
+            type: 'text',
+            text: helpContent[topic] || `Unknown topic: ${topic}. Available: setup, rules, review, cursor, docs, config, all`
+          }]
+        };
+      }
+      
+      // ==================== LEGACY TOOLS (kept for backwards compatibility) ====================
+      
       // Smart Setup Tools
       case 'auto_setup': {
         const { projectPath } = args as { projectPath: string };

@@ -4,10 +4,8 @@ Dynamic context loading for AI coding assistants. Works with **Cursor** and **Gi
 
 ## Quick Start
 
-### 1. Configure
-
-**Cursor** (`.cursor/mcp.json`):
-```json
+**Cursor** (\`.cursor/mcp.json\`):
+\`\`\`json
 {
   "mcpServers": {
     "stackguide": {
@@ -16,73 +14,56 @@ Dynamic context loading for AI coding assistants. Works with **Cursor** and **Gi
     }
   }
 }
-```
+\`\`\`
 
-**VS Code** (`.vscode/mcp.json`):
-```json
-{
-  "mcpServers": {
-    "stackguide": {
-      "command": "npx",
-      "args": ["-y", "@stackguide/mcp-server"]
-    }
-  }
-}
-```
+**VS Code** (\`.vscode/mcp.json\`): Same config as above.
 
-### 2. Use
+## Usage
 
-Just tell your AI assistant in natural language:
+Just talk naturally:
 
-- *"Set up my project"* → Auto-detects and configures everything
-- *"I'm working on a Django API"* → Configures Python/Django context
-- *"Configure for React with TypeScript"* → Sets up React-TS rules
-- *"Browse Python rules from cursor directory"* → Shows community rules
+- *"Set up my project"* → Auto-configures everything
+- *"Review my code"* → Analyzes against active rules
+- *"Browse React rules"* → Shows community rules
 
-## Auto-Setup (NEW in 1.1.0!)
+## Tools (10 simplified)
 
-StackGuide can automatically detect your project type and configure itself:
-
-```
-auto_setup projectPath:"."
-```
-
-It analyzes your `package.json`, `requirements.txt`, `Cargo.toml`, etc. and loads the right rules.
+| Tool | Description | Example |
+|------|-------------|---------|
+| \`setup\` | Configure project (auto or manual) | \`setup\` or \`setup type:"react-typescript"\` |
+| \`context\` | View current configuration | \`context\` or \`context full:true\` |
+| \`rules\` | List, search, get rules | \`rules action:"search" query:"security"\` |
+| \`knowledge\` | Access patterns & solutions | \`knowledge action:"get" query:"architecture"\` |
+| \`review\` | Review code against rules | \`review file:"src/index.ts"\` or \`review project:true\` |
+| \`cursor\` | Browse cursor.directory | \`cursor action:"browse" query:"react"\` |
+| \`docs\` | Fetch web documentation | \`docs action:"fetch" url:"https://..."\` |
+| \`config\` | Save/load configurations | \`config action:"save" name:"my-project"\` |
+| \`custom_rule\` | Create custom rules | \`custom_rule action:"create" name:"..." content:"..."\` |
+| \`help\` | Get help | \`help\` or \`help topic:"review"\` |
 
 ## Supported Stacks
 
-`python-django` · `python-fastapi` · `python-flask` · `react-node` · `react-typescript` · `vue-node` · `nextjs` · `express` · `nestjs` · `laravel` · `rails` · `golang` · `rust`
+\`python-django\` · \`python-fastapi\` · \`react-node\` · \`react-typescript\` · \`vue-node\` · \`nextjs\` · \`express\` · \`nestjs\` · \`laravel\` · \`rails\` · \`golang\` · \`rust\`
 
-## Tools (46 total)
+## Examples
 
-| Category | Tools |
-|----------|-------|
-| **Smart Setup** | `auto_setup` `detect_project` `suggest_rules` `quick_start` |
-| **Project** | `list_project_types` `select_project_type` `get_current_context` |
-| **Rules** | `list_rules` `get_rule` `select_rules` `search_rules` `create_rule` `update_rule` `delete_rule` |
-| **Knowledge** | `list_knowledge` `get_knowledge` `select_knowledge` `search_knowledge` |
-| **Config** | `save_configuration` `load_configuration` `list_configurations` `export_configuration` |
-| **Web Docs** | `fetch_web_docs` `list_web_docs` `search_web_docs` `get_suggested_docs` |
-| **Cursor Directory** | `browse_cursor_directory` `search_cursor_directory` `import_cursor_directory_rule` |
-| **Context** | `get_full_context` `add_custom_rule` |
+\`\`\`
+# Auto-setup (detects project type)
+setup
 
-## How It Works
+# Review a file
+review file:"src/components/App.tsx"
 
-1. **Auto-detect**: Analyzes project files to identify your stack
-2. **Load context**: Loads relevant rules, standards, and patterns
-3. **Suggest**: Recommends community rules from cursor.directory
-4. **Persist**: Saves your configuration for future sessions
+# Review entire project for security
+review project:true focus:"security"
 
-## Cursor Directory Integration
+# Browse cursor.directory
+cursor action:"browse" query:"typescript"
 
-Import community rules from [cursor.directory](https://cursor.directory/rules/):
-
-```
-browse_cursor_directory category:"python"
-search_cursor_directory query:"react hooks"
-import_cursor_directory_rule slug:"nextjs-react-typescript-cursor-rules"
-```
+# Import a community rule
+cursor action:"import" slug:"react-best-practices"
+\`\`\`
 
 ## License
 
-GPL-3.0
+MIT
