@@ -823,6 +823,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         serverState.loadedRules = rulesProvider.getRulesForProject(projectType);
         serverState.loadedKnowledge = knowledgeProvider.getKnowledgeForProject(projectType);
         
+        // Create an active configuration with all rules/knowledge selected
+        serverState.activeConfiguration = {
+          id: `auto-${projectType}-${Date.now()}`,
+          name: `Auto Setup - ${project.name}`,
+          projectType: projectType,
+          selectedRules: serverState.loadedRules.map(r => r.id),
+          selectedKnowledge: serverState.loadedKnowledge.map(k => k.id),
+          customRules: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
         const setupInstructions = autoDetect.getSetupInstructions(projectType);
         
         return {
@@ -992,6 +1004,18 @@ Just tell me about your project and I'll help you configure!`
         serverState.loadedRules = rulesProvider.getRulesForProject(projectType);
         serverState.loadedKnowledge = knowledgeProvider.getKnowledgeForProject(projectType);
         
+        // Create an active configuration with all rules/knowledge selected
+        serverState.activeConfiguration = {
+          id: `manual-${projectType}-${Date.now()}`,
+          name: `Manual Setup - ${project.name}`,
+          projectType: projectType,
+          selectedRules: serverState.loadedRules.map(r => r.id),
+          selectedKnowledge: serverState.loadedKnowledge.map(k => k.id),
+          customRules: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
         return {
           content: [{
             type: 'text',
@@ -999,7 +1023,8 @@ Just tell me about your project and I'll help you configure!`
               success: true,
               message: `Project type "${project.name}" activated`,
               rulesLoaded: serverState.loadedRules.length,
-              knowledgeLoaded: serverState.loadedKnowledge.length
+              knowledgeLoaded: serverState.loadedKnowledge.length,
+              rules: serverState.loadedRules.map(r => r.name)
             }, null, 2)
           }]
         };
@@ -1305,26 +1330,35 @@ Just tell me about your project and I'll help you configure!`
       // Context Tools
       case 'get_full_context': {
         if (!serverState.activeProjectType) {
-          return { content: [{ type: 'text', text: 'Error: No project type selected.' }] };
+          return { content: [{ type: 'text', text: 'Error: No project type selected. Use auto_setup or select_project_type first.' }] };
         }
         
-        const selectedRules = serverState.activeConfiguration?.selectedRules || [];
-        const selectedKnowledge = serverState.activeConfiguration?.selectedKnowledge || [];
+        // Use configuration selection if available, otherwise use all loaded rules/knowledge
+        const selectedRules = serverState.activeConfiguration?.selectedRules || 
+          serverState.loadedRules.map(r => r.id);
+        const selectedKnowledge = serverState.activeConfiguration?.selectedKnowledge || 
+          serverState.loadedKnowledge.map(k => k.id);
+        
+        // Also get user-created rules for this project type
+        const userRules = ruleManager.getUserRules(serverState.activeProjectType);
+        const userRulesContent = userRules.map((r: { name: string; content: string }) => `### ${r.name}\n\n${r.content}`).join('\n\n---\n\n');
         
         const rulesContent = rulesProvider.getCombinedRulesContent(selectedRules);
         const knowledgeContent = knowledgeProvider.getCombinedKnowledgeContent(selectedKnowledge);
         
         const fullContext = `# Project Context: ${SUPPORTED_PROJECTS[serverState.activeProjectType].name}
 
-## Rules and Guidelines
+## Rules and Guidelines (${selectedRules.length} loaded)
 
-${rulesContent || 'No rules selected.'}
+${rulesContent || 'No rules available.'}
+
+${userRulesContent ? `---\n\n## Custom Rules\n\n${userRulesContent}` : ''}
 
 ---
 
-## Knowledge Base
+## Knowledge Base (${selectedKnowledge.length} loaded)
 
-${knowledgeContent || 'No knowledge files selected.'}
+${knowledgeContent || 'No knowledge files available.'}
 `;
         
         return { content: [{ type: 'text', text: fullContext }] };
