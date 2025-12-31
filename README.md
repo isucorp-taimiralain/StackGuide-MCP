@@ -4,8 +4,8 @@ Dynamic context loading for AI coding assistants. Works with **Cursor** and **Gi
 
 ## Quick Start
 
-**Cursor** (\`.cursor/mcp.json\`):
-\`\`\`json
+**Cursor** (`.cursor/mcp.json`):
+```json
 {
   "mcpServers": {
     "stackguide": {
@@ -14,9 +14,9 @@ Dynamic context loading for AI coding assistants. Works with **Cursor** and **Gi
     }
   }
 }
-\`\`\`
+```
 
-**VS Code** (\`.vscode/mcp.json\`): Same config as above.
+**VS Code** (`.vscode/mcp.json`): Same config as above.
 
 ## Usage
 
@@ -30,24 +30,24 @@ Just talk naturally:
 
 | Tool | Description | Example |
 |------|-------------|---------|
-| \`setup\` | Configure project (auto or manual) | \`setup\` or \`setup type:"react-typescript"\` |
-| \`context\` | View current configuration | \`context\` or \`context full:true\` |
-| \`rules\` | List, search, get rules | \`rules action:"search" query:"security"\` |
-| \`knowledge\` | Access patterns & solutions | \`knowledge action:"get" query:"architecture"\` |
-| \`review\` | Review code against rules | \`review file:"src/index.ts"\` or \`review project:true\` |
-| \`cursor\` | Browse cursor.directory | \`cursor action:"browse" query:"react"\` |
-| \`docs\` | Fetch web documentation | \`docs action:"fetch" url:"https://..."\` |
-| \`config\` | Save/load configurations | \`config action:"save" name:"my-project"\` |
-| \`custom_rule\` | Create custom rules | \`custom_rule action:"create" name:"..." content:"..."\` |
-| \`help\` | Get help | \`help\` or \`help topic:"review"\` |
+| `setup` | Configure project (auto or manual) | `setup` or `setup type:"react-typescript"` |
+| `context` | View current configuration | `context` or `context full:true` |
+| `rules` | List, search, get rules | `rules action:"search" query:"security"` |
+| `knowledge` | Access patterns & solutions | `knowledge action:"get" query:"architecture"` |
+| `review` | Review code against rules | `review file:"src/index.ts"` or `review project:true` |
+| `cursor` | Browse cursor.directory | `cursor action:"browse" query:"react"` |
+| `docs` | Fetch web documentation | `docs action:"fetch" url:"https://..."` |
+| `config` | Save/load configurations | `config action:"save" name:"my-project"` |
+| `custom_rule` | Create custom rules | `custom_rule action:"create" name:"..." content:"..."` |
+| `help` | Get help | `help` or `help topic:"review"` |
 
 ## Supported Stacks
 
-\`python-django\` · \`python-fastapi\` · \`react-node\` · \`react-typescript\` · \`vue-node\` · \`nextjs\` · \`express\` · \`nestjs\` · \`laravel\` · \`rails\` · \`golang\` · \`rust\`
+`python-django` · `python-fastapi` · `react-node` · `react-typescript` · `vue-node` · `nextjs` · `express` · `nestjs` · `laravel` · `rails` · `golang` · `rust`
 
 ## Examples
 
-\`\`\`
+```bash
 # Auto-setup (detects project type)
 setup
 
@@ -62,7 +62,7 @@ cursor action:"browse" query:"typescript"
 
 # Import a community rule
 cursor action:"import" slug:"react-best-practices"
-\`\`\`
+```
 
 ## License
 
