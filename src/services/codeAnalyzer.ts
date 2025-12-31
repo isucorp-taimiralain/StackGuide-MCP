@@ -5,6 +5,13 @@
 
 import { logger } from '../utils/logger.js';
 
+export interface QuickFix {
+  description: string;
+  before: string;
+  after: string;
+  isRegex?: boolean;
+}
+
 export interface CodeIssue {
   severity: 'error' | 'warning' | 'info' | 'suggestion';
   rule: string;
@@ -14,6 +21,7 @@ export interface CodeIssue {
   column?: number;
   code?: string;
   suggestion?: string;
+  quickFix?: QuickFix;
 }
 
 export interface AnalysisResult {
@@ -27,6 +35,7 @@ export interface AnalysisResult {
     info: number;
     suggestions: number;
   };
+  quickFixes?: QuickFix[];
 }
 
 interface PatternRule {
@@ -37,6 +46,7 @@ interface PatternRule {
   message: string;
   suggestion?: string;
   languages?: string[];
+  quickFix?: (match: string) => QuickFix | undefined;
 }
 
 // Pattern-based rules for common issues
@@ -49,7 +59,12 @@ const PATTERN_RULES: PatternRule[] = [
     severity: 'error',
     message: 'Avoid using eval() - it can execute arbitrary code',
     suggestion: 'Use JSON.parse() for JSON data or safer alternatives',
-    languages: ['javascript', 'typescript']
+    languages: ['javascript', 'typescript'],
+    quickFix: (match) => ({
+      description: 'Replace eval() with JSON.parse()',
+      before: match,
+      after: 'JSON.parse('
+    })
   },
   {
     id: 'SEC002',
@@ -58,7 +73,12 @@ const PATTERN_RULES: PatternRule[] = [
     severity: 'warning',
     message: 'innerHTML can lead to XSS vulnerabilities',
     suggestion: 'Use textContent or sanitize HTML input',
-    languages: ['javascript', 'typescript']
+    languages: ['javascript', 'typescript'],
+    quickFix: (match) => ({
+      description: 'Replace innerHTML with textContent',
+      before: match,
+      after: 'textContent ='
+    })
   },
   {
     id: 'SEC003',
@@ -76,6 +96,11 @@ const PATTERN_RULES: PatternRule[] = [
     severity: 'error',
     message: 'Hardcoded password detected',
     suggestion: 'Use environment variables for sensitive data',
+    quickFix: (match) => ({
+      description: 'Replace hardcoded password with environment variable',
+      before: match,
+      after: 'password = process.env.PASSWORD'
+    })
   },
   {
     id: 'SEC005',
@@ -84,6 +109,11 @@ const PATTERN_RULES: PatternRule[] = [
     severity: 'error',
     message: 'Hardcoded API key detected',
     suggestion: 'Use environment variables for API keys',
+    quickFix: (match) => ({
+      description: 'Replace hardcoded API key with environment variable',
+      before: match,
+      after: 'apiKey = process.env.API_KEY'
+    })
   },
   {
     id: 'SEC006',
@@ -164,6 +194,11 @@ const PATTERN_RULES: PatternRule[] = [
     severity: 'warning',
     message: 'Console statement found - remove for production',
     suggestion: 'Use a proper logging library or remove before deployment',
+    quickFix: (match) => ({
+      description: 'Remove console statement',
+      before: match,
+      after: '// ' + match + ' // TODO: Remove or replace with logger'
+    })
   },
   {
     id: 'STD002',
@@ -178,16 +213,26 @@ const PATTERN_RULES: PatternRule[] = [
     pattern: /debugger\s*;/g,
     severity: 'error',
     message: 'Debugger statement found - remove before deployment',
-    languages: ['javascript', 'typescript']
+    languages: ['javascript', 'typescript'],
+    quickFix: () => ({
+      description: 'Remove debugger statement',
+      before: 'debugger;',
+      after: ''
+    })
   },
   {
     id: 'STD004',
     category: 'coding-standards',
-    pattern: /var\s+\w+\s*=/g,
+    pattern: /var\s+(\w+)\s*=/g,
     severity: 'warning',
     message: 'Prefer const or let over var',
     suggestion: 'Use const for immutable values, let for mutable',
-    languages: ['javascript', 'typescript']
+    languages: ['javascript', 'typescript'],
+    quickFix: (match) => ({
+      description: 'Replace var with const',
+      before: match,
+      after: match.replace('var ', 'const ')
+    })
   },
   {
     id: 'STD005',
@@ -195,7 +240,12 @@ const PATTERN_RULES: PatternRule[] = [
     pattern: /==(?!=)/g,
     severity: 'warning',
     message: 'Use strict equality (===) instead of loose equality (==)',
-    languages: ['javascript', 'typescript']
+    languages: ['javascript', 'typescript'],
+    quickFix: () => ({
+      description: 'Replace == with ===',
+      before: '==',
+      after: '==='
+    })
   },
   {
     id: 'STD006',
@@ -203,7 +253,12 @@ const PATTERN_RULES: PatternRule[] = [
     pattern: /!=(?!=)/g,
     severity: 'warning',
     message: 'Use strict inequality (!==) instead of loose inequality (!=)',
-    languages: ['javascript', 'typescript']
+    languages: ['javascript', 'typescript'],
+    quickFix: () => ({
+      description: 'Replace != with !==',
+      before: '!=',
+      after: '!=='
+    })
   },
   {
     id: 'STD007',
@@ -395,14 +450,20 @@ export function analyzeCode(
     
     while ((match = rule.pattern.exec(content)) !== null) {
       const line = getLineNumber(content, match.index);
+      const matchedText = match[0];
+      
+      // Generate quick fix if available
+      const quickFix = rule.quickFix ? rule.quickFix(matchedText) : undefined;
+      
       issues.push({
         severity: rule.severity,
         rule: rule.id,
         category: rule.category,
         message: rule.message,
         line,
-        code: match[0].substring(0, 100),
-        suggestion: rule.suggestion
+        code: matchedText.substring(0, 100),
+        suggestion: rule.suggestion,
+        quickFix
       });
 
       // Prevent infinite loop on zero-length matches
@@ -436,14 +497,21 @@ export function analyzeCode(
   score -= summary.suggestions * 0.5;
   score = Math.max(0, Math.min(100, score));
 
-  logger.info('Analysis complete', { file, issuesFound: issues.length, score });
+  // Collect unique quick fixes
+  const quickFixes = issues
+    .filter(i => i.quickFix)
+    .map(i => i.quickFix!)
+    .filter((fix, idx, arr) => arr.findIndex(f => f.before === fix.before) === idx);
+
+  logger.info('Analysis complete', { file, issuesFound: issues.length, score, quickFixesAvailable: quickFixes.length });
 
   return {
     file,
     language,
     issues,
     score: Math.round(score),
-    summary
+    summary,
+    quickFixes: quickFixes.length > 0 ? quickFixes : undefined
   };
 }
 
@@ -511,6 +579,22 @@ export function formatAnalysisReport(result: AnalysisResult): string {
       if (issue.line) lines.push(`- Line: ${issue.line}`);
       if (issue.code) lines.push(`- Code: \`${issue.code}\``);
       if (issue.suggestion) lines.push(`- 💡 ${issue.suggestion}`);
+      if (issue.quickFix) {
+        lines.push(`- 🔧 **Quick Fix:** ${issue.quickFix.description}`);
+        lines.push(`  - Replace: \`${issue.quickFix.before}\``);
+        lines.push(`  - With: \`${issue.quickFix.after}\``);
+      }
+      lines.push('');
+    }
+    
+    // Add quick fixes summary at the end
+    if (result.quickFixes && result.quickFixes.length > 0) {
+      lines.push('### 🔧 Available Quick Fixes');
+      lines.push('');
+      for (const fix of result.quickFixes) {
+        lines.push(`- **${fix.description}**`);
+        lines.push(`  \`${fix.before}\` → \`${fix.after}\``);
+      }
       lines.push('');
     }
   }

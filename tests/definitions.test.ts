@@ -115,10 +115,11 @@ describe('tool definitions', () => {
       }
     });
 
-    it('should have 10 tools', () => {
+    it('should have 12 tools', () => {
       // Core: setup, context, rules, knowledge, review
       // Utility: cursor, docs, config, custom_rule, help
-      expect(toolDefinitions.length).toBe(10);
+      // Advanced: generate, health
+      expect(toolDefinitions.length).toBe(12);
     });
   });
 });

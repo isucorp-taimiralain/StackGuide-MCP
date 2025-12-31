@@ -63,13 +63,14 @@ describe('setup handler', () => {
       expect(data).toHaveProperty('success');
     });
 
-    it('should return nextSteps on success', async () => {
+    it('should return wizard with nextSteps on success', async () => {
       const response = await handleSetup({ type: 'react-node' }, state);
       const data = JSON.parse(response.content[0].text);
       
       if (data.success) {
-        expect(data.nextSteps).toBeDefined();
-        expect(Array.isArray(data.nextSteps)).toBe(true);
+        expect(data.wizard).toBeDefined();
+        expect(data.wizard.nextSteps).toBeDefined();
+        expect(Array.isArray(data.wizard.nextSteps)).toBe(true);
       }
     });
 
@@ -90,13 +91,13 @@ describe('setup handler', () => {
       expect(Array.isArray(response.content)).toBe(true);
     });
 
-    it('should return availableTypes on failed auto-detect', async () => {
+    it('should return wizard with availableTypes on failed auto-detect', async () => {
       const response = await handleSetup({ path: '/nonexistent/path/xyz123' }, state);
       const data = JSON.parse(response.content[0].text);
       
       if (!data.success) {
-        expect(data.availableTypes).toBeDefined();
-        expect(data.availableTypes).toContain('react-node');
+        expect(data.wizard).toBeDefined();
+        expect(data.wizard.options).toBeDefined();
       }
     });
 
@@ -180,13 +181,14 @@ describe('setup handler', () => {
       expect(data.message).toContain('✅');
     });
 
-    it('should include hint on failed auto-detection', async () => {
+    it('should include wizard with hint on failed auto-detection', async () => {
       const response = await handleSetup({ path: '/completely/fake/path/xyz' }, state);
       const data = JSON.parse(response.content[0].text);
       
       if (!data.success) {
-        expect(data.hint).toBeDefined();
-        expect(data.hint).toContain('setup');
+        expect(data.wizard).toBeDefined();
+        expect(data.wizard.hint).toBeDefined();
+        expect(data.wizard.hint).toContain('setup');
       }
     });
   });

@@ -12,5 +12,7 @@ export { handleDocs } from './docs.js';
 export { handleConfig } from './config.js';
 export { handleCustomRule } from './custom-rule.js';
 export { handleHelp } from './help.js';
+export { handleGenerate } from './generate.js';
+export { handleHealth } from './health.js';
 
 export * from './types.js';

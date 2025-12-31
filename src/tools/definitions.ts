@@ -253,7 +253,69 @@ export const toolDefinitions = [
         topic: {
           type: 'string',
           description: 'Help topic',
-          enum: ['setup', 'rules', 'review', 'cursor', 'docs', 'config', 'all']
+          enum: ['setup', 'rules', 'review', 'cursor', 'docs', 'config', 'generate', 'health', 'all']
+        }
+      },
+      required: []
+    }
+  },
+
+  // ==================== ADVANCED FEATURES (2) ====================
+  {
+    name: 'generate',
+    description: 'Generate boilerplate code from templates. Create components, hooks, services, tests, API routes, models, and utilities with best practices built in.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        type: {
+          type: 'string',
+          description: 'Type of code to generate',
+          enum: ['component', 'hook', 'service', 'test', 'api', 'model', 'util']
+        },
+        name: {
+          type: 'string',
+          description: 'Name for the generated code (e.g., UserCard, useAuth, ApiService)'
+        },
+        options: {
+          type: 'object',
+          description: 'Generation options',
+          properties: {
+            typescript: {
+              type: 'boolean',
+              description: 'Generate TypeScript code (default: auto-detect from project)'
+            },
+            withTests: {
+              type: 'boolean',
+              description: 'Include test file template'
+            },
+            withStyles: {
+              type: 'boolean',
+              description: 'Include CSS module import (for components)'
+            },
+            framework: {
+              type: 'string',
+              description: 'Target framework (nextjs, express, vitest, jest)',
+              enum: ['nextjs', 'express', 'vitest', 'jest']
+            }
+          }
+        }
+      },
+      required: ['type', 'name']
+    }
+  },
+  {
+    name: 'health',
+    description: 'Get a comprehensive health score for your project. Analyzes configuration, code quality, structure, documentation, and testing readiness. Returns a grade (A-F) with detailed recommendations.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: {
+          type: 'string',
+          description: 'Project path to analyze (default: current project)'
+        },
+        detailed: {
+          type: 'boolean',
+          description: 'Include detailed breakdown by category (default: true)'
         }
       },
       required: []
