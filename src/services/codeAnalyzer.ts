@@ -1,7 +1,8 @@
 /**
- * Code Analyzer Service - v3.1.0
+ * Code Analyzer Service - v3.2.0
  * Unified rule pipeline that supports builtin, user, and project rules
  * Now with AST-based analysis using ts-morph
+ * Added multi-language parser support (Python, Go, Rust)
  */
 
 import { logger } from '../utils/logger.js';
@@ -15,12 +16,16 @@ import {
   AnalysisCategory
 } from '../config/types.js';
 import { analyzeWithAST, BUILTIN_AST_RULES, clearASTCache } from './astAnalyzer.js';
+import { parserRegistry } from './parsers/index.js';
 
 // Re-export types for backwards compatibility
 export type { QuickFix, CodeIssue, AnalysisResult };
 
 // Re-export AST utilities
 export { clearASTCache };
+
+// Re-export parser registry
+export { parserRegistry };
 
 // =============================================================================
 // BUILTIN PATTERN RULES
@@ -756,7 +761,7 @@ class RuleRegistry {
   /**
    * Get statistics about registered rules
    */
-  getStats(): { builtin: number; user: number; project: number; total: number; ast: number } {
+  getStats(): { builtin: number; user: number; project: number; total: number; ast: number; languageParsers: number } {
     const builtinPattern = this.builtinPatternRules.filter(r => r.enabled).length;
     const builtinAST = this.builtinASTRules.filter(r => r.enabled).length;
     const userPattern = this.userPatternRules.filter(r => r.enabled).length;
@@ -769,7 +774,17 @@ class RuleRegistry {
     const project = projectPattern + projectAST;
     const ast = builtinAST + userAST + projectAST;
     
-    return { builtin, user, project, total: builtin + user + project, ast };
+    // Count language parser rules
+    const languageParsers = parserRegistry.getTotalRuleCount();
+    
+    return { 
+      builtin: builtin + languageParsers, 
+      user, 
+      project, 
+      total: builtin + user + project + languageParsers, 
+      ast,
+      languageParsers
+    };
   }
 }
 
@@ -906,6 +921,33 @@ export function analyzeCode(
       } catch (error) {
         logger.warn('AST analysis failed', { file, error: String(error) });
       }
+    }
+  }
+
+  // ==========================================================================
+  // PHASE 3: Apply language-specific parser rules (Python, Go, Rust, etc.)
+  // ==========================================================================
+  if (parserRegistry.isFileSupported(file)) {
+    try {
+      const parserIssues = parserRegistry.analyze(file, content);
+      
+      // Filter by focus if needed
+      const filteredParserIssues = focus === 'all' 
+        ? parserIssues 
+        : parserIssues.filter(i => i.category === focus);
+      
+      for (const issue of filteredParserIssues) {
+        issues.push(issue);
+        rulesApplied[issue.source]++;
+      }
+      
+      logger.debug('Language parser analysis complete', {
+        file,
+        language,
+        issuesFound: filteredParserIssues.length
+      });
+    } catch (error) {
+      logger.warn('Language parser analysis failed', { file, error: String(error) });
     }
   }
 

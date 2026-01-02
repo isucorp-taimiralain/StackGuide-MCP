@@ -189,6 +189,7 @@ export interface CodeIssue {
   column?: number;
   code?: string;
   suggestion?: string;
+  details?: string;
   quickFix?: QuickFix;
   source: 'builtin' | 'user' | 'project';
 }
