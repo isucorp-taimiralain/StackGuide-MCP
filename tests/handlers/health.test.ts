@@ -36,9 +36,9 @@ describe('handleHealth', () => {
       
       expect(categoryNames).toContain('Configuration');
       expect(categoryNames).toContain('Code Quality');
-      expect(categoryNames).toContain('Project Structure');
+      expect(categoryNames).toContain('Structure');
       expect(categoryNames).toContain('Documentation');
-      expect(categoryNames).toContain('Testing Readiness');
+      expect(categoryNames).toContain('Testing');
     });
 
     it('should return simplified report when detailed is false', async () => {

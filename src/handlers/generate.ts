@@ -1,10 +1,16 @@
 /**
  * Generate handler - Generate boilerplate code from templates
  * Phase 6: Advanced Features
+ * 
+ * Improvements:
+ * - Detects project conventions (quotes, semicolons, indentation)
+ * - Adapts templates based on state management in use
+ * - Respects existing code patterns
  */
 
 import { ServerState, ToolResponse, jsonResponse, textResponse } from './types.js';
 import { logger } from '../utils/logger.js';
+import { detectConventions, CodeConventions, formatWithConventions } from '../services/conventionDetector.js';
 
 interface GenerateArgs {
   type: 'component' | 'hook' | 'service' | 'test' | 'api' | 'model' | 'util';
@@ -14,7 +20,62 @@ interface GenerateArgs {
     withTests?: boolean;
     withStyles?: boolean;
     framework?: string;
+    scanProject?: boolean;  // Scan project for conventions
   };
+}
+
+// Cached conventions
+let cachedConventions: CodeConventions | null = null;
+let cachedProjectPath: string | null = null;
+
+/**
+ * Get conventions for current project (with caching)
+ */
+function getProjectConventions(): CodeConventions {
+  const projectPath = process.cwd();
+  
+  if (cachedConventions && cachedProjectPath === projectPath) {
+    return cachedConventions;
+  }
+  
+  cachedConventions = detectConventions(projectPath);
+  cachedProjectPath = projectPath;
+  return cachedConventions;
+}
+
+/**
+ * Apply conventions to generated code
+ */
+function applyConventions(code: string, conventions: CodeConventions): string {
+  let result = code;
+  
+  // Apply indentation
+  if (conventions.indentation === 'tabs') {
+    result = result.replace(/^( {2})/gm, '\t');
+    result = result.replace(/^( {4})/gm, '\t\t');
+    result = result.replace(/^( {6})/gm, '\t\t\t');
+    result = result.replace(/^( {8})/gm, '\t\t\t\t');
+  } else if (conventions.indentSize !== 2) {
+    const spaces = ' '.repeat(conventions.indentSize);
+    result = result.replace(/^  /gm, spaces);
+    result = result.replace(/^    /gm, spaces + spaces);
+    result = result.replace(/^      /gm, spaces + spaces + spaces);
+  }
+  
+  // Apply quote style (careful with JSX)
+  if (conventions.quotes === 'double') {
+    // Only change quotes outside of JSX attributes
+    result = result.replace(/(?<!=)'([^']*)'(?!>)/g, '"$1"');
+  }
+  
+  // Apply semicolons
+  if (!conventions.semicolons) {
+    // Remove trailing semicolons (simple cases)
+    result = result.replace(/;(\s*\n)/g, '$1');
+    result = result.replace(/;(\s*$)/g, '$1');
+  }
+  
+  return result;
 }
 
 // Template generators by type
@@ -773,9 +834,23 @@ export async function handleGenerate(
     });
   }
 
-  // Infer TypeScript from project type
-  if (options.typescript === undefined && state.activeProjectType) {
-    options.typescript = state.activeProjectType.includes('typescript');
+  // Detect project conventions
+  const conventions = options.scanProject !== false ? getProjectConventions() : null;
+  
+  // Infer TypeScript from project type or conventions
+  if (options.typescript === undefined) {
+    if (state.activeProjectType?.includes('typescript')) {
+      options.typescript = true;
+    } else if (conventions?.strictMode) {
+      options.typescript = true;
+    }
+  }
+  
+  // Infer framework from conventions
+  if (!options.framework && conventions) {
+    if (conventions.stateManagement === 'zustand') {
+      options.framework = 'zustand';
+    }
   }
 
   const generator = templates[type];
@@ -786,9 +861,15 @@ export async function handleGenerate(
     });
   }
 
-  logger.info('Generating template', { type, name, options });
+  logger.info('Generating template', { type, name, options, conventions: conventions?.sources });
 
-  const code = generator(name, options);
+  let code = generator(name, options);
+  
+  // Apply detected conventions to generated code
+  if (conventions && conventions.confidence !== 'low') {
+    code = applyConventions(code, conventions);
+  }
+  
   const ext = options.typescript !== false ? 'ts' : 'js';
   const filename = type === 'test' 
     ? `${name}.test.${ext}` 
@@ -802,6 +883,13 @@ export async function handleGenerate(
     name,
     filename,
     code,
+    conventions: conventions ? {
+      applied: conventions.confidence !== 'low',
+      sources: conventions.sources,
+      indentation: conventions.indentation,
+      quotes: conventions.quotes,
+      semicolons: conventions.semicolons
+    } : null,
     instructions: [
       `1. Create file: ${filename}`,
       '2. Paste the generated code',

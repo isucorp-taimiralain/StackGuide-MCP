@@ -1,65 +1,39 @@
 /**
- * Code Analyzer Service
- * Analyzes code against rules and patterns to find issues
+ * Code Analyzer Service - v3.0.0
+ * Unified rule pipeline that supports builtin, user, and project rules
  */
 
 import { logger } from '../utils/logger.js';
+import { 
+  PatternRule, 
+  CodeIssue, 
+  AnalysisResult, 
+  QuickFix,
+  IssueSeverity,
+  AnalysisCategory
+} from '../config/types.js';
 
-export interface QuickFix {
-  description: string;
-  before: string;
-  after: string;
-  isRegex?: boolean;
-}
+// Re-export types for backwards compatibility
+export type { QuickFix, CodeIssue, AnalysisResult };
 
-export interface CodeIssue {
-  severity: 'error' | 'warning' | 'info' | 'suggestion';
-  rule: string;
-  category: string;
-  message: string;
-  line?: number;
-  column?: number;
-  code?: string;
-  suggestion?: string;
-  quickFix?: QuickFix;
-}
+// =============================================================================
+// BUILTIN PATTERN RULES
+// =============================================================================
 
-export interface AnalysisResult {
-  file: string;
-  language: string;
-  issues: CodeIssue[];
-  score: number; // 0-100
-  summary: {
-    errors: number;
-    warnings: number;
-    info: number;
-    suggestions: number;
-  };
-  quickFixes?: QuickFix[];
-}
-
-interface PatternRule {
-  id: string;
-  category: string;
-  pattern: RegExp;
-  severity: CodeIssue['severity'];
-  message: string;
-  suggestion?: string;
-  languages?: string[];
-  quickFix?: (match: string) => QuickFix | undefined;
-}
-
-// Pattern-based rules for common issues
-const PATTERN_RULES: PatternRule[] = [
+const BUILTIN_PATTERN_RULES: PatternRule[] = [
   // Security
   {
     id: 'SEC001',
+    type: 'pattern',
     category: 'security',
     pattern: /eval\s*\(/g,
     severity: 'error',
     message: 'Avoid using eval() - it can execute arbitrary code',
     suggestion: 'Use JSON.parse() for JSON data or safer alternatives',
     languages: ['javascript', 'typescript'],
+    enabled: true,
+    priority: 100,
+    source: 'builtin',
     quickFix: (match) => ({
       description: 'Replace eval() with JSON.parse()',
       before: match,
@@ -68,12 +42,16 @@ const PATTERN_RULES: PatternRule[] = [
   },
   {
     id: 'SEC002',
+    type: 'pattern',
     category: 'security',
     pattern: /innerHTML\s*=/g,
     severity: 'warning',
     message: 'innerHTML can lead to XSS vulnerabilities',
     suggestion: 'Use textContent or sanitize HTML input',
     languages: ['javascript', 'typescript'],
+    enabled: true,
+    priority: 100,
+    source: 'builtin',
     quickFix: (match) => ({
       description: 'Replace innerHTML with textContent',
       before: match,
@@ -82,20 +60,28 @@ const PATTERN_RULES: PatternRule[] = [
   },
   {
     id: 'SEC003',
+    type: 'pattern',
     category: 'security',
     pattern: /dangerouslySetInnerHTML/g,
     severity: 'warning',
     message: 'dangerouslySetInnerHTML can lead to XSS - ensure content is sanitized',
     suggestion: 'Sanitize HTML with DOMPurify or similar library',
-    languages: ['javascript', 'typescript', 'jsx', 'tsx']
+    languages: ['javascript', 'typescript', 'jsx', 'tsx'],
+    enabled: true,
+    priority: 100,
+    source: 'builtin'
   },
   {
     id: 'SEC004',
+    type: 'pattern',
     category: 'security',
     pattern: /password\s*[:=]\s*['"`][^'"`]+['"`]/gi,
     severity: 'error',
     message: 'Hardcoded password detected',
     suggestion: 'Use environment variables for sensitive data',
+    enabled: true,
+    priority: 100,
+    source: 'builtin',
     quickFix: (match) => ({
       description: 'Replace hardcoded password with environment variable',
       before: match,
@@ -104,11 +90,15 @@ const PATTERN_RULES: PatternRule[] = [
   },
   {
     id: 'SEC005',
+    type: 'pattern',
     category: 'security',
     pattern: /api[_-]?key\s*[:=]\s*['"`][a-zA-Z0-9]{20,}['"`]/gi,
     severity: 'error',
     message: 'Hardcoded API key detected',
     suggestion: 'Use environment variables for API keys',
+    enabled: true,
+    priority: 100,
+    source: 'builtin',
     quickFix: (match) => ({
       description: 'Replace hardcoded API key with environment variable',
       before: match,
@@ -117,83 +107,119 @@ const PATTERN_RULES: PatternRule[] = [
   },
   {
     id: 'SEC006',
+    type: 'pattern',
     category: 'security',
     pattern: /SELECT\s+\*\s+FROM\s+\w+\s+WHERE.*\+|SELECT\s+\*\s+FROM\s+\w+\s+WHERE.*\$\{/gi,
     severity: 'error',
     message: 'Potential SQL injection - string concatenation in query',
     suggestion: 'Use parameterized queries or an ORM',
+    enabled: true,
+    priority: 100,
+    source: 'builtin'
   },
   {
     id: 'SEC007',
+    type: 'pattern',
     category: 'security',
     pattern: /exec\s*\([^)]*\+|exec\s*\([^)]*\$\{/g,
     severity: 'error',
     message: 'Command injection risk - dynamic command execution',
     suggestion: 'Validate and sanitize all user input',
-    languages: ['python']
+    languages: ['python'],
+    enabled: true,
+    priority: 100,
+    source: 'builtin'
   },
   {
     id: 'SEC008',
+    type: 'pattern',
     category: 'security',
     pattern: /jwt\.decode\s*\([^)]*verify\s*=\s*False/gi,
     severity: 'error',
     message: 'JWT decoded without verification',
     suggestion: 'Always verify JWT signatures',
-    languages: ['python']
+    languages: ['python'],
+    enabled: true,
+    priority: 100,
+    source: 'builtin'
   },
 
   // Performance
   {
     id: 'PERF001',
+    type: 'pattern',
     category: 'performance',
     pattern: /document\.querySelectorAll\([^)]+\)\.forEach/g,
     severity: 'info',
     message: 'Consider caching querySelectorAll result for multiple operations',
     suggestion: 'Store the result in a variable before iterating',
-    languages: ['javascript', 'typescript']
+    languages: ['javascript', 'typescript'],
+    enabled: true,
+    priority: 50,
+    source: 'builtin'
   },
   {
     id: 'PERF002',
+    type: 'pattern',
     category: 'performance',
     pattern: /JSON\.parse\(JSON\.stringify\(/g,
     severity: 'warning',
     message: 'Deep clone with JSON is slow for large objects',
     suggestion: 'Use structuredClone() or a dedicated library like lodash.cloneDeep',
+    enabled: true,
+    priority: 50,
+    source: 'builtin'
   },
   {
     id: 'PERF003',
+    type: 'pattern',
     category: 'performance',
     pattern: /useEffect\(\s*\(\)\s*=>\s*\{[^}]*\},\s*\[\s*\]\s*\)/gs,
     severity: 'info',
     message: 'Empty dependency array - effect runs only once',
     suggestion: 'Verify this is intentional behavior',
-    languages: ['javascript', 'typescript', 'jsx', 'tsx']
+    languages: ['javascript', 'typescript', 'jsx', 'tsx'],
+    enabled: true,
+    priority: 50,
+    source: 'builtin'
   },
   {
     id: 'PERF004',
+    type: 'pattern',
     category: 'performance',
     pattern: /await\s+\w+\([^)]*\)\s*;\s*await\s+\w+\([^)]*\)\s*;/g,
     severity: 'suggestion',
     message: 'Sequential awaits might be parallelizable',
     suggestion: 'Consider Promise.all() for independent async operations',
+    enabled: true,
+    priority: 50,
+    source: 'builtin'
   },
   {
     id: 'PERF005',
+    type: 'pattern',
     category: 'performance',
     pattern: /\.map\([^)]+\)\.filter\([^)]+\)/g,
     severity: 'suggestion',
     message: 'Chained map().filter() iterates twice',
     suggestion: 'Consider using reduce() for single-pass transformation',
+    enabled: true,
+    priority: 50,
+    source: 'builtin'
   },
 
   // Coding Standards
   {
     id: 'STD001',
+    type: 'pattern',
     category: 'coding-standards',
     pattern: /console\.(log|debug|info)\s*\(/g,
     severity: 'warning',
     message: 'Console statement found - remove for production',
     suggestion: 'Use a proper logging library or remove before deployment',
+    enabled: true,
+    priority: 50,
+    source: 'builtin',
     quickFix: (match) => ({
       description: 'Remove console statement',
       before: match,
@@ -202,18 +228,26 @@ const PATTERN_RULES: PatternRule[] = [
   },
   {
     id: 'STD002',
+    type: 'pattern',
     category: 'coding-standards',
     pattern: /\/\/\s*TODO:|\/\/\s*FIXME:|\/\/\s*HACK:/gi,
     severity: 'info',
     message: 'TODO/FIXME comment found - address before release',
+    enabled: true,
+    priority: 25,
+    source: 'builtin'
   },
   {
     id: 'STD003',
+    type: 'pattern',
     category: 'coding-standards',
     pattern: /debugger\s*;/g,
     severity: 'error',
     message: 'Debugger statement found - remove before deployment',
     languages: ['javascript', 'typescript'],
+    enabled: true,
+    priority: 100,
+    source: 'builtin',
     quickFix: () => ({
       description: 'Remove debugger statement',
       before: 'debugger;',
@@ -222,12 +256,16 @@ const PATTERN_RULES: PatternRule[] = [
   },
   {
     id: 'STD004',
+    type: 'pattern',
     category: 'coding-standards',
     pattern: /var\s+(\w+)\s*=/g,
     severity: 'warning',
     message: 'Prefer const or let over var',
     suggestion: 'Use const for immutable values, let for mutable',
     languages: ['javascript', 'typescript'],
+    enabled: true,
+    priority: 50,
+    source: 'builtin',
     quickFix: (match) => ({
       description: 'Replace var with const',
       before: match,
@@ -236,11 +274,15 @@ const PATTERN_RULES: PatternRule[] = [
   },
   {
     id: 'STD005',
+    type: 'pattern',
     category: 'coding-standards',
     pattern: /==(?!=)/g,
     severity: 'warning',
     message: 'Use strict equality (===) instead of loose equality (==)',
     languages: ['javascript', 'typescript'],
+    enabled: true,
+    priority: 50,
+    source: 'builtin',
     quickFix: () => ({
       description: 'Replace == with ===',
       before: '==',
@@ -249,11 +291,15 @@ const PATTERN_RULES: PatternRule[] = [
   },
   {
     id: 'STD006',
+    type: 'pattern',
     category: 'coding-standards',
     pattern: /!=(?!=)/g,
     severity: 'warning',
     message: 'Use strict inequality (!==) instead of loose inequality (!=)',
     languages: ['javascript', 'typescript'],
+    enabled: true,
+    priority: 50,
+    source: 'builtin',
     quickFix: () => ({
       description: 'Replace != with !==',
       before: '!=',
@@ -262,146 +308,356 @@ const PATTERN_RULES: PatternRule[] = [
   },
   {
     id: 'STD007',
+    type: 'pattern',
     category: 'coding-standards',
     pattern: /function\s+\w+\s*\([^)]*\)\s*\{[\s\S]{500,}\}/g,
     severity: 'warning',
     message: 'Function appears too long (>500 chars)',
     suggestion: 'Consider breaking into smaller functions',
+    enabled: true,
+    priority: 25,
+    source: 'builtin'
   },
   {
     id: 'STD008',
+    type: 'pattern',
     category: 'coding-standards',
     pattern: /catch\s*\(\s*\w*\s*\)\s*\{\s*\}/g,
     severity: 'warning',
     message: 'Empty catch block - errors are silently ignored',
     suggestion: 'Log the error or handle it appropriately',
+    enabled: true,
+    priority: 75,
+    source: 'builtin'
   },
 
   // Architecture
   {
     id: 'ARCH001',
+    type: 'pattern',
     category: 'architecture',
     pattern: /import.*from\s+['"]\.\.\/\.\.\/\.\.\/\.\./g,
     severity: 'warning',
     message: 'Deep relative import - consider path aliases',
     suggestion: 'Configure path aliases in tsconfig.json',
-    languages: ['javascript', 'typescript']
+    languages: ['javascript', 'typescript'],
+    enabled: true,
+    priority: 25,
+    source: 'builtin'
   },
   {
     id: 'ARCH002',
+    type: 'pattern',
     category: 'architecture',
     pattern: /class\s+\w+\s*\{[\s\S]*constructor\s*\([^)]{200,}\)/g,
     severity: 'warning',
     message: 'Constructor has many parameters - consider dependency injection',
     suggestion: 'Use a DI container or builder pattern',
+    enabled: true,
+    priority: 25,
+    source: 'builtin'
   },
   {
     id: 'ARCH003',
+    type: 'pattern',
     category: 'architecture',
     pattern: /new\s+(Date|Math\.random)\s*\(\)/g,
     severity: 'suggestion',
     message: 'Direct instantiation makes testing harder',
     suggestion: 'Inject dependencies for better testability',
+    enabled: true,
+    priority: 25,
+    source: 'builtin'
   },
 
   // Python specific
   {
     id: 'PY001',
-    category: 'coding-standards',
+    type: 'pattern',
+    category: 'python',
     pattern: /except\s*:/g,
     severity: 'warning',
     message: 'Bare except catches all exceptions including SystemExit',
     suggestion: 'Specify exception type: except Exception:',
-    languages: ['python']
+    languages: ['python'],
+    enabled: true,
+    priority: 75,
+    source: 'builtin'
   },
   {
     id: 'PY002',
-    category: 'coding-standards',
+    type: 'pattern',
+    category: 'python',
     pattern: /print\s*\(/g,
     severity: 'info',
     message: 'Print statement found - consider using logging',
     suggestion: 'Use the logging module for production code',
-    languages: ['python']
+    languages: ['python'],
+    enabled: true,
+    priority: 25,
+    source: 'builtin'
   },
   {
     id: 'PY003',
+    type: 'pattern',
     category: 'security',
     pattern: /pickle\.load|pickle\.loads/g,
     severity: 'error',
     message: 'Pickle is unsafe for untrusted data',
     suggestion: 'Use JSON or a safe serialization format',
-    languages: ['python']
+    languages: ['python'],
+    enabled: true,
+    priority: 100,
+    source: 'builtin'
   },
   {
     id: 'PY004',
-    category: 'coding-standards',
+    type: 'pattern',
+    category: 'python',
     pattern: /from\s+\w+\s+import\s+\*/g,
     severity: 'warning',
     message: 'Wildcard imports make code harder to understand',
     suggestion: 'Import specific names explicitly',
-    languages: ['python']
+    languages: ['python'],
+    enabled: true,
+    priority: 50,
+    source: 'builtin'
   },
 
   // Go specific
   {
     id: 'GO001',
-    category: 'coding-standards',
+    type: 'pattern',
+    category: 'go',
     pattern: /fmt\.Print|fmt\.Println/g,
     severity: 'info',
     message: 'fmt.Print found - consider using structured logging',
     suggestion: 'Use log/slog or a logging library',
-    languages: ['go']
+    languages: ['go'],
+    enabled: true,
+    priority: 25,
+    source: 'builtin'
   },
   {
     id: 'GO002',
-    category: 'coding-standards',
+    type: 'pattern',
+    category: 'go',
     pattern: /panic\s*\(/g,
     severity: 'warning',
     message: 'Panic should be used sparingly',
     suggestion: 'Return errors instead of panicking',
-    languages: ['go']
+    languages: ['go'],
+    enabled: true,
+    priority: 75,
+    source: 'builtin'
   },
   {
     id: 'GO003',
-    category: 'coding-standards',
+    type: 'pattern',
+    category: 'go',
     pattern: /if\s+err\s*!=\s*nil\s*\{\s*return\s+nil\s*,?\s*err\s*\}/g,
     severity: 'suggestion',
     message: 'Consider wrapping errors with context',
     suggestion: 'Use fmt.Errorf("context: %w", err)',
-    languages: ['go']
+    languages: ['go'],
+    enabled: true,
+    priority: 25,
+    source: 'builtin'
   },
 
   // Rust specific
   {
     id: 'RS001',
-    category: 'coding-standards',
+    type: 'pattern',
+    category: 'rust',
     pattern: /\.unwrap\(\)/g,
     severity: 'warning',
     message: 'unwrap() can panic on None/Err',
     suggestion: 'Use ? operator or match/if let for proper error handling',
-    languages: ['rust']
+    languages: ['rust'],
+    enabled: true,
+    priority: 75,
+    source: 'builtin'
   },
   {
     id: 'RS002',
-    category: 'coding-standards',
+    type: 'pattern',
+    category: 'rust',
     pattern: /\.expect\("[^"]*"\)/g,
     severity: 'info',
     message: 'expect() can panic - ensure this is intentional',
     suggestion: 'Use ? operator for propagating errors',
-    languages: ['rust']
+    languages: ['rust'],
+    enabled: true,
+    priority: 50,
+    source: 'builtin'
   },
   {
     id: 'RS003',
-    category: 'coding-standards',
+    type: 'pattern',
+    category: 'rust',
     pattern: /unsafe\s*\{/g,
     severity: 'warning',
     message: 'Unsafe block found - ensure safety invariants are documented',
     suggestion: 'Add SAFETY comment explaining why this is safe',
-    languages: ['rust']
+    languages: ['rust'],
+    enabled: true,
+    priority: 75,
+    source: 'builtin'
   }
 ];
 
-function detectLanguage(file: string, content: string): string {
+// =============================================================================
+// RULE REGISTRY - Unified Management
+// =============================================================================
+
+/**
+ * In-memory registry of all active rules
+ */
+class RuleRegistry {
+  private builtinRules: PatternRule[] = [...BUILTIN_PATTERN_RULES];
+  private userRules: PatternRule[] = [];
+  private projectRules: PatternRule[] = [];
+
+  /**
+   * Get all builtin rules
+   */
+  getBuiltinRules(): PatternRule[] {
+    return this.builtinRules.filter(r => r.enabled);
+  }
+
+  /**
+   * Get all user-defined rules
+   */
+  getUserRules(): PatternRule[] {
+    return this.userRules.filter(r => r.enabled);
+  }
+
+  /**
+   * Get all project-specific rules
+   */
+  getProjectRules(): PatternRule[] {
+    return this.projectRules.filter(r => r.enabled);
+  }
+
+  /**
+   * Get all active rules, sorted by priority (highest first)
+   */
+  getAllRules(): PatternRule[] {
+    const all = [
+      ...this.builtinRules,
+      ...this.userRules,
+      ...this.projectRules
+    ].filter(r => r.enabled);
+
+    // Sort by priority (higher priority = runs first)
+    return all.sort((a, b) => b.priority - a.priority);
+  }
+
+  /**
+   * Register a user-defined pattern rule
+   */
+  registerUserRule(rule: Omit<PatternRule, 'source' | 'type'>): void {
+    const fullRule: PatternRule = {
+      ...rule,
+      type: 'pattern',
+      source: 'user'
+    };
+    
+    // Remove existing rule with same ID
+    this.userRules = this.userRules.filter(r => r.id !== rule.id);
+    this.userRules.push(fullRule);
+    
+    logger.info('Registered user rule', { ruleId: rule.id });
+  }
+
+  /**
+   * Register a project-specific pattern rule
+   */
+  registerProjectRule(rule: Omit<PatternRule, 'source' | 'type'>): void {
+    const fullRule: PatternRule = {
+      ...rule,
+      type: 'pattern',
+      source: 'project'
+    };
+    
+    // Remove existing rule with same ID
+    this.projectRules = this.projectRules.filter(r => r.id !== rule.id);
+    this.projectRules.push(fullRule);
+    
+    logger.info('Registered project rule', { ruleId: rule.id });
+  }
+
+  /**
+   * Register multiple project rules at once
+   */
+  registerProjectRules(rules: Array<Omit<PatternRule, 'source' | 'type'>>): void {
+    for (const rule of rules) {
+      this.registerProjectRule(rule);
+    }
+  }
+
+  /**
+   * Clear all user rules
+   */
+  clearUserRules(): void {
+    this.userRules = [];
+    logger.info('Cleared user rules');
+  }
+
+  /**
+   * Clear all project rules
+   */
+  clearProjectRules(): void {
+    this.projectRules = [];
+    logger.info('Cleared project rules');
+  }
+
+  /**
+   * Disable a builtin rule by ID
+   */
+  disableBuiltinRule(ruleId: string): boolean {
+    const rule = this.builtinRules.find(r => r.id === ruleId);
+    if (rule) {
+      rule.enabled = false;
+      logger.info('Disabled builtin rule', { ruleId });
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Enable a builtin rule by ID
+   */
+  enableBuiltinRule(ruleId: string): boolean {
+    const rule = this.builtinRules.find(r => r.id === ruleId);
+    if (rule) {
+      rule.enabled = true;
+      logger.info('Enabled builtin rule', { ruleId });
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Get statistics about registered rules
+   */
+  getStats(): { builtin: number; user: number; project: number; total: number } {
+    const builtin = this.builtinRules.filter(r => r.enabled).length;
+    const user = this.userRules.filter(r => r.enabled).length;
+    const project = this.projectRules.filter(r => r.enabled).length;
+    return { builtin, user, project, total: builtin + user + project };
+  }
+}
+
+// Global rule registry instance
+export const ruleRegistry = new RuleRegistry();
+
+// =============================================================================
+// ANALYSIS FUNCTIONS
+// =============================================================================
+
+function detectLanguage(file: string, _content: string): string {
   const ext = file.split('.').pop()?.toLowerCase() || '';
   const langMap: Record<string, string> = {
     'ts': 'typescript',
@@ -425,6 +681,9 @@ function getLineNumber(content: string, index: number): number {
   return content.substring(0, index).split('\n').length;
 }
 
+/**
+ * Analyze code using the unified rule pipeline
+ */
 export function analyzeCode(
   file: string,
   content: string,
@@ -435,15 +694,30 @@ export function analyzeCode(
 
   logger.debug('Analyzing code', { file, language, focus, contentLength: content.length });
 
+  // Get all active rules from registry
+  const allRules = ruleRegistry.getAllRules();
+  
+  // Track rules applied by source
+  const rulesApplied = { builtin: 0, user: 0, project: 0 };
+
   // Filter rules by focus and language
-  const applicableRules = PATTERN_RULES.filter(rule => {
+  const applicableRules = allRules.filter(rule => {
     if (focus !== 'all' && rule.category !== focus) return false;
     if (rule.languages && !rule.languages.includes(language)) return false;
     return true;
   });
 
+  logger.debug('Applying rules', { 
+    totalRules: allRules.length, 
+    applicableRules: applicableRules.length,
+    focus,
+    language
+  });
+
   // Apply pattern rules
   for (const rule of applicableRules) {
+    if (rule.type !== 'pattern') continue; // Skip non-pattern rules for now
+    
     let match;
     // Reset regex state
     rule.pattern.lastIndex = 0;
@@ -463,8 +737,12 @@ export function analyzeCode(
         line,
         code: matchedText.substring(0, 100),
         suggestion: rule.suggestion,
-        quickFix
+        quickFix,
+        source: rule.source
       });
+
+      // Track which source contributed
+      rulesApplied[rule.source]++;
 
       // Prevent infinite loop on zero-length matches
       if (match.index === rule.pattern.lastIndex) {
@@ -474,7 +752,7 @@ export function analyzeCode(
   }
 
   // Sort issues by severity and line
-  const severityOrder = { error: 0, warning: 1, info: 2, suggestion: 3 };
+  const severityOrder: Record<IssueSeverity, number> = { error: 0, warning: 1, info: 2, suggestion: 3 };
   issues.sort((a, b) => {
     const sevDiff = severityOrder[a.severity] - severityOrder[b.severity];
     if (sevDiff !== 0) return sevDiff;
@@ -503,7 +781,13 @@ export function analyzeCode(
     .map(i => i.quickFix!)
     .filter((fix, idx, arr) => arr.findIndex(f => f.before === fix.before) === idx);
 
-  logger.info('Analysis complete', { file, issuesFound: issues.length, score, quickFixesAvailable: quickFixes.length });
+  logger.info('Analysis complete', { 
+    file, 
+    issuesFound: issues.length, 
+    score, 
+    quickFixesAvailable: quickFixes.length,
+    rulesApplied 
+  });
 
   return {
     file,
@@ -511,7 +795,8 @@ export function analyzeCode(
     issues,
     score: Math.round(score),
     summary,
-    quickFixes: quickFixes.length > 0 ? quickFixes : undefined
+    quickFixes: quickFixes.length > 0 ? quickFixes : undefined,
+    rulesApplied
   };
 }
 
@@ -525,6 +810,7 @@ export function analyzeMultipleFiles(
     totalIssues: number;
     averageScore: number;
     summary: AnalysisResult['summary'];
+    rulesApplied: AnalysisResult['rulesApplied'];
   };
 } {
   const results = files.map(f => analyzeCode(f.path, f.content, focus));
@@ -541,13 +827,20 @@ export function analyzeMultipleFiles(
     suggestions: results.reduce((sum, r) => sum + r.summary.suggestions, 0)
   };
 
+  const rulesApplied = {
+    builtin: results.reduce((sum, r) => sum + r.rulesApplied.builtin, 0),
+    user: results.reduce((sum, r) => sum + r.rulesApplied.user, 0),
+    project: results.reduce((sum, r) => sum + r.rulesApplied.project, 0)
+  };
+
   return {
     files: results,
     overall: {
       totalFiles: results.length,
       totalIssues,
       averageScore,
-      summary
+      summary,
+      rulesApplied
     }
   };
 }
@@ -557,6 +850,7 @@ export function formatAnalysisReport(result: AnalysisResult): string {
   
   lines.push(`## Code Review: ${result.file}`);
   lines.push(`**Language:** ${result.language} | **Score:** ${result.score}/100`);
+  lines.push(`**Rules Applied:** ${result.rulesApplied.builtin} builtin, ${result.rulesApplied.user} user, ${result.rulesApplied.project} project`);
   lines.push('');
   
   if (result.issues.length === 0) {
@@ -575,7 +869,9 @@ export function formatAnalysisReport(result: AnalysisResult): string {
                    issue.severity === 'warning' ? '🟡' :
                    issue.severity === 'info' ? '🔵' : '💡';
       
-      lines.push(`#### ${icon} [${issue.rule}] ${issue.message}`);
+      const sourceTag = issue.source !== 'builtin' ? ` [${issue.source}]` : '';
+      
+      lines.push(`#### ${icon} [${issue.rule}]${sourceTag} ${issue.message}`);
       if (issue.line) lines.push(`- Line: ${issue.line}`);
       if (issue.code) lines.push(`- Code: \`${issue.code}\``);
       if (issue.suggestion) lines.push(`- 💡 ${issue.suggestion}`);
@@ -600,4 +896,63 @@ export function formatAnalysisReport(result: AnalysisResult): string {
   }
 
   return lines.join('\n');
+}
+
+// =============================================================================
+// HELPER: Convert user rules from RuleManager format to PatternRule
+// =============================================================================
+
+/**
+ * Parse a user-defined rule content to extract pattern rules
+ * This bridges the gap between RuleManager's documentation rules and analysis rules
+ */
+export function parseUserRuleToPatternRule(
+  ruleId: string,
+  content: string,
+  category: string
+): PatternRule | null {
+  // Look for patterns defined in markdown code blocks with special syntax
+  // Example: ```pattern:error
+  // /console\.log/g
+  // ```
+  const patternMatch = content.match(/```pattern:(error|warning|info|suggestion)\s*\n(\/[^/]+\/[gimsu]*)\s*\n```/);
+  
+  if (!patternMatch) {
+    return null;
+  }
+
+  const severity = patternMatch[1] as IssueSeverity;
+  const patternStr = patternMatch[2];
+  
+  try {
+    // Parse the regex string
+    const regexMatch = patternStr.match(/^\/(.+)\/([gimsu]*)$/);
+    if (!regexMatch) return null;
+    
+    const pattern = new RegExp(regexMatch[1], regexMatch[2] || 'g');
+    
+    // Extract message from the rule content
+    const messageMatch = content.match(/##?\s*(?:Rule|Message):\s*(.+)/i);
+    const message = messageMatch?.[1] || `Custom rule: ${ruleId}`;
+    
+    // Extract suggestion if present
+    const suggestionMatch = content.match(/##?\s*Suggestion:\s*(.+)/i);
+    const suggestion = suggestionMatch?.[1];
+    
+    return {
+      id: ruleId,
+      type: 'pattern',
+      category: category as AnalysisCategory,
+      pattern,
+      severity,
+      message,
+      suggestion,
+      enabled: true,
+      priority: 150, // User rules have higher priority than builtin
+      source: 'user'
+    };
+  } catch {
+    logger.warn('Failed to parse pattern rule', { ruleId });
+    return null;
+  }
 }

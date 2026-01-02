@@ -3,7 +3,16 @@
  * 
  * This service fetches and parses rules from cursor.directory,
  * a popular community-driven repository of cursor rules for AI coding assistants.
+ * 
+ * Features:
+ * - Persistent disk cache for offline access
+ * - Automatic fallback to cached rules when offline
+ * - TTL-based cache invalidation
  */
+
+import * as fs from 'fs';
+import * as path from 'path';
+import { logger } from '../utils/logger.js';
 
 // Structure for a cursor.directory rule
 export interface CursorDirectoryRule {
@@ -17,6 +26,19 @@ export interface CursorDirectoryRule {
   url: string;
   fetchedAt: string;
 }
+
+// Persistent cache structure
+interface PersistentCache {
+  version: string;
+  lastSync: string;
+  rules: Record<string, CursorDirectoryRule>;
+  categories: Record<string, string[]>; // category -> slugs
+}
+
+const CACHE_VERSION = '1.0.0';
+const CACHE_DIR = '.stackguide';
+const CACHE_FILE = 'cursor-rules-cache.json';
+const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // Categories available on cursor.directory
 export const CURSOR_DIRECTORY_CATEGORIES = [
@@ -62,12 +84,158 @@ export const CURSOR_DIRECTORY_CATEGORIES = [
 
 export type CursorDirectoryCategory = typeof CURSOR_DIRECTORY_CATEGORIES[number];
 
-// Cache for fetched rules
+// Cache for fetched rules (in-memory)
 const rulesCache: Map<string, CursorDirectoryRule> = new Map();
 const categoryCache: Map<string, CursorDirectoryRule[]> = new Map();
 
+// Persistent cache state
+let persistentCache: PersistentCache | null = null;
+let isOnline = true;
+
 // Base URL for cursor.directory
 const BASE_URL = 'https://cursor.directory';
+
+/**
+ * Get the path to the persistent cache file
+ */
+function getCacheFilePath(): string {
+  const homeDir = process.env.HOME || process.env.USERPROFILE || '.';
+  return path.join(homeDir, CACHE_DIR, CACHE_FILE);
+}
+
+/**
+ * Load persistent cache from disk
+ */
+function loadPersistentCache(): PersistentCache {
+  if (persistentCache) {
+    return persistentCache;
+  }
+  
+  const cachePath = getCacheFilePath();
+  
+  try {
+    if (fs.existsSync(cachePath)) {
+      const data = fs.readFileSync(cachePath, 'utf-8');
+      const cache = JSON.parse(data) as PersistentCache;
+      
+      if (cache.version === CACHE_VERSION) {
+        persistentCache = cache;
+        logger.debug('Loaded cursor directory cache', { 
+          rules: Object.keys(cache.rules).length,
+          categories: Object.keys(cache.categories).length 
+        });
+        return cache;
+      }
+    }
+  } catch (error) {
+    logger.debug('Failed to load cursor directory cache', { error });
+  }
+  
+  persistentCache = createEmptyCache();
+  return persistentCache;
+}
+
+/**
+ * Save persistent cache to disk
+ */
+function savePersistentCache(): void {
+  if (!persistentCache) return;
+  
+  const cachePath = getCacheFilePath();
+  const cacheDir = path.dirname(cachePath);
+  
+  try {
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true });
+    }
+    
+    persistentCache.lastSync = new Date().toISOString();
+    fs.writeFileSync(cachePath, JSON.stringify(persistentCache, null, 2));
+    logger.debug('Saved cursor directory cache');
+  } catch (error) {
+    logger.debug('Failed to save cursor directory cache', { error });
+  }
+}
+
+/**
+ * Create empty persistent cache
+ */
+function createEmptyCache(): PersistentCache {
+  return {
+    version: CACHE_VERSION,
+    lastSync: new Date().toISOString(),
+    rules: {},
+    categories: {}
+  };
+}
+
+/**
+ * Check if we have internet connectivity
+ */
+async function checkConnectivity(): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    
+    const response = await fetch(`${BASE_URL}/robots.txt`, {
+      method: 'HEAD',
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeout);
+    isOnline = response.ok;
+    return isOnline;
+  } catch {
+    isOnline = false;
+    return false;
+  }
+}
+
+/**
+ * Get rule from persistent cache
+ */
+function getCachedRule(slug: string, category: string): CursorDirectoryRule | null {
+  const cache = loadPersistentCache();
+  const cacheKey = `${category}-${slug}`;
+  
+  const cached = cache.rules[cacheKey];
+  if (cached) {
+    // Check if cache is still valid (within TTL)
+    const fetchedAt = new Date(cached.fetchedAt).getTime();
+    if (Date.now() - fetchedAt < CACHE_TTL) {
+      return cached;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Store rule in persistent cache
+ */
+function cacheRule(rule: CursorDirectoryRule): void {
+  const cache = loadPersistentCache();
+  const cacheKey = `${rule.category}-${rule.slug}`;
+  cache.rules[cacheKey] = rule;
+  savePersistentCache();
+}
+
+/**
+ * Store category slugs in persistent cache
+ */
+function cacheCategory(category: string, slugs: string[]): void {
+  const cache = loadPersistentCache();
+  cache.categories[category] = slugs;
+  savePersistentCache();
+}
+
+/**
+ * Get cached slugs for a category
+ */
+function getCachedCategorySlugs(category: string): string[] | null {
+  const cache = loadPersistentCache();
+  return cache.categories[category] || null;
+}
 
 /**
  * Extract rule content from cursor.directory HTML page
@@ -236,12 +404,29 @@ function parseCategoryPage(html: string): string[] {
 
 /**
  * Fetch a single rule from cursor.directory
+ * Falls back to cached version if offline
  */
 export async function fetchCursorDirectoryRule(slug: string, category: string = 'general'): Promise<CursorDirectoryRule | null> {
-  // Check cache first
+  // Check in-memory cache first
   const cacheKey = `${category}-${slug}`;
   if (rulesCache.has(cacheKey)) {
     return rulesCache.get(cacheKey)!;
+  }
+  
+  // Check persistent cache
+  const cachedRule = getCachedRule(slug, category);
+  
+  // Check connectivity
+  const online = await checkConnectivity();
+  
+  if (!online) {
+    if (cachedRule) {
+      logger.debug('Offline: using cached rule', { slug });
+      rulesCache.set(cacheKey, cachedRule);
+      return cachedRule;
+    }
+    logger.debug('Offline: no cached rule available', { slug });
+    return null;
   }
   
   try {
@@ -254,7 +439,12 @@ export async function fetchCursorDirectoryRule(slug: string, category: string = 
     });
     
     if (!response.ok) {
-      console.error(`Failed to fetch rule ${slug}: ${response.status}`);
+      logger.debug(`Failed to fetch rule ${slug}: ${response.status}`);
+      // Return cached version if available
+      if (cachedRule) {
+        rulesCache.set(cacheKey, cachedRule);
+        return cachedRule;
+      }
       return null;
     }
     
@@ -263,22 +453,53 @@ export async function fetchCursorDirectoryRule(slug: string, category: string = 
     
     if (rule) {
       rulesCache.set(cacheKey, rule);
+      cacheRule(rule); // Persist to disk
     }
     
     return rule;
   } catch (error) {
-    console.error(`Error fetching cursor directory rule: ${error}`);
+    logger.debug(`Error fetching cursor directory rule: ${error}`);
+    // Return cached version on error
+    if (cachedRule) {
+      rulesCache.set(cacheKey, cachedRule);
+      return cachedRule;
+    }
     return null;
   }
 }
 
 /**
  * Browse rules by category
+ * Falls back to cached rules if offline
  */
 export async function browseCursorDirectoryCategory(category: string): Promise<CursorDirectoryRule[]> {
-  // Check cache
+  // Check in-memory cache
   if (categoryCache.has(category)) {
     return categoryCache.get(category)!;
+  }
+  
+  // Check connectivity
+  const online = await checkConnectivity();
+  
+  if (!online) {
+    // Try to load from persistent cache
+    const cachedSlugs = getCachedCategorySlugs(category);
+    if (cachedSlugs) {
+      const rules: CursorDirectoryRule[] = [];
+      for (const slug of cachedSlugs) {
+        const rule = getCachedRule(slug, category);
+        if (rule) {
+          rules.push(rule);
+        }
+      }
+      if (rules.length > 0) {
+        logger.debug('Offline: using cached category rules', { category, count: rules.length });
+        categoryCache.set(category, rules);
+        return rules;
+      }
+    }
+    logger.debug('Offline: no cached rules for category', { category });
+    return [];
   }
   
   try {
@@ -291,12 +512,15 @@ export async function browseCursorDirectoryCategory(category: string): Promise<C
     });
     
     if (!response.ok) {
-      console.error(`Failed to fetch category ${category}: ${response.status}`);
+      logger.debug(`Failed to fetch category ${category}: ${response.status}`);
       return [];
     }
     
     const html = await response.text();
     const slugs = parseCategoryPage(html);
+    
+    // Cache the slugs
+    cacheCategory(category, slugs);
     
     // Fetch first 10 rules to avoid too many requests
     const rules: CursorDirectoryRule[] = [];
@@ -312,9 +536,77 @@ export async function browseCursorDirectoryCategory(category: string): Promise<C
     categoryCache.set(category, rules);
     return rules;
   } catch (error) {
-    console.error(`Error browsing cursor directory category: ${error}`);
+    logger.debug(`Error browsing cursor directory category: ${error}`);
     return [];
   }
+}
+
+/**
+ * Sync cache - fetch and cache popular rules for offline use
+ */
+export async function syncCursorDirectoryCache(): Promise<{ synced: number; errors: number }> {
+  const online = await checkConnectivity();
+  if (!online) {
+    return { synced: 0, errors: 0 };
+  }
+  
+  let synced = 0;
+  let errors = 0;
+  
+  // Sync popular rules
+  const popularSlugs = [
+    { slug: 'nextjs-react-typescript-cursor-rules', category: 'typescript' },
+    { slug: 'react-native-cursor-rules', category: 'react-native' },
+    { slug: 'python-django-cursor-rules', category: 'python' },
+    { slug: 'fastapi-python-cursor-rules', category: 'python' },
+    { slug: 'vuejs-typescript-best-practices', category: 'vue' },
+    { slug: 'tailwind-css-cursor-rules', category: 'tailwindcss' },
+    { slug: 'prisma-orm-cursor-rules', category: 'prisma' },
+    { slug: 'nestjs-clean-typescript-cursor-rules', category: 'typescript' }
+  ];
+  
+  for (const { slug, category } of popularSlugs) {
+    try {
+      const rule = await fetchCursorDirectoryRule(slug, category);
+      if (rule) {
+        synced++;
+      } else {
+        errors++;
+      }
+    } catch {
+      errors++;
+    }
+    // Small delay to be respectful
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  
+  logger.debug('Cursor directory cache synced', { synced, errors });
+  return { synced, errors };
+}
+
+/**
+ * Check if we're currently online
+ */
+export function isCurrentlyOnline(): boolean {
+  return isOnline;
+}
+
+/**
+ * Get persistent cache statistics
+ */
+export function getPersistentCacheStats(): { 
+  rules: number; 
+  categories: number; 
+  lastSync: string | null;
+  isOnline: boolean;
+} {
+  const cache = loadPersistentCache();
+  return {
+    rules: Object.keys(cache.rules).length,
+    categories: Object.keys(cache.categories).length,
+    lastSync: cache.lastSync,
+    isOnline
+  };
 }
 
 /**
@@ -406,15 +698,17 @@ ${rule.content}
 }
 
 /**
- * Clear the cursor directory cache
+ * Clear the cursor directory cache (both in-memory and persistent)
  */
 export function clearCursorDirectoryCache(): void {
   rulesCache.clear();
   categoryCache.clear();
+  persistentCache = createEmptyCache();
+  savePersistentCache();
 }
 
 /**
- * Get cache stats
+ * Get cache stats (in-memory)
  */
 export function getCacheStats(): { rules: number; categories: number } {
   return {

@@ -25,7 +25,7 @@ export interface ProjectInfo {
   detectionFiles: string[];
 }
 
-// Individual rule configuration
+// Individual rule configuration (documentation/knowledge rules)
 export interface Rule {
   id: string;
   name: string;
@@ -34,6 +34,137 @@ export interface Rule {
   content: string;
   enabled: boolean;
   priority: number;
+}
+
+// =============================================================================
+// ANALYSIS RULE TYPES - Phase 1: Unified Rule Pipeline
+// =============================================================================
+
+/**
+ * Severity levels for code analysis issues
+ */
+export type IssueSeverity = 'error' | 'warning' | 'info' | 'suggestion';
+
+/**
+ * Quick fix definition for auto-corrections
+ */
+export interface QuickFix {
+  description: string;
+  before: string;
+  after: string;
+  isRegex?: boolean;
+}
+
+/**
+ * Base interface for all analysis rules
+ */
+export interface BaseAnalysisRule {
+  id: string;
+  category: AnalysisCategory;
+  severity: IssueSeverity;
+  message: string;
+  suggestion?: string;
+  languages?: string[];
+  enabled: boolean;
+  priority: number;
+  source: 'builtin' | 'user' | 'project';
+}
+
+/**
+ * Regex-based pattern matching rule (current implementation)
+ */
+export interface PatternRule extends BaseAnalysisRule {
+  type: 'pattern';
+  pattern: RegExp;
+  quickFix?: (match: string) => QuickFix | undefined;
+}
+
+/**
+ * AST-based rule (future implementation - Phase 2)
+ */
+export interface ASTRule extends BaseAnalysisRule {
+  type: 'ast';
+  nodeType: string;  // e.g., 'CallExpression', 'FunctionDeclaration'
+  check: (node: unknown) => boolean;
+  quickFix?: (node: unknown) => QuickFix | undefined;
+}
+
+/**
+ * External linter rule (future implementation - Phase 3)
+ */
+export interface LinterRule extends BaseAnalysisRule {
+  type: 'linter';
+  linter: 'eslint' | 'prettier' | 'biome' | 'ruff' | 'pylint';
+  linterRule: string;  // e.g., 'no-unused-vars'
+}
+
+/**
+ * Union type for all analysis rules
+ */
+export type AnalysisRule = PatternRule | ASTRule | LinterRule;
+
+/**
+ * Analysis categories (more specific than RuleCategory)
+ */
+export type AnalysisCategory = 
+  | 'security'
+  | 'performance'
+  | 'coding-standards'
+  | 'architecture'
+  | 'best-practices'
+  | 'testing'
+  | 'accessibility'
+  | 'react'
+  | 'node'
+  | 'python'
+  | 'go'
+  | 'rust';
+
+/**
+ * Analysis rule registry for managing all rules
+ */
+export interface AnalysisRuleRegistry {
+  builtin: AnalysisRule[];
+  user: AnalysisRule[];
+  project: AnalysisRule[];
+}
+
+/**
+ * Code issue found during analysis
+ */
+export interface CodeIssue {
+  severity: IssueSeverity;
+  rule: string;
+  category: string;
+  message: string;
+  line?: number;
+  column?: number;
+  code?: string;
+  suggestion?: string;
+  quickFix?: QuickFix;
+  source: 'builtin' | 'user' | 'project';
+}
+
+/**
+ * Analysis result for a single file
+ */
+export interface AnalysisResult {
+  file: string;
+  language: string;
+  issues: CodeIssue[];
+  score: number;
+  summary: {
+    errors: number;
+    warnings: number;
+    info: number;
+    suggestions: number;
+  };
+  quickFixes?: QuickFix[];
+  rulesApplied: {
+    builtin: number;
+    user: number;
+    project: number;
+  };
 }
 
 // Rule categories

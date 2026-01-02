@@ -147,19 +147,19 @@ line4`;
     it('should apply Python-specific rules only to Python files', () => {
       const pyCode = `except:
         pass`;
-      const pyResult = analyzeCode('app.py', pyCode, 'coding-standards');
+      const pyResult = analyzeCode('app.py', pyCode, 'all');
       const pyIssue = pyResult.issues.find(i => i.rule === 'PY001');
       expect(pyIssue).toBeDefined();
       
       // Same code in JS should not trigger Python rule
-      const jsResult = analyzeCode('app.js', pyCode, 'coding-standards');
+      const jsResult = analyzeCode('app.js', pyCode, 'all');
       const jsIssue = jsResult.issues.find(i => i.rule === 'PY001');
       expect(jsIssue).toBeUndefined();
     });
 
     it('should apply Rust-specific rules', () => {
       const rustCode = `let x = some_option.unwrap();`;
-      const result = analyzeCode('main.rs', rustCode, 'coding-standards');
+      const result = analyzeCode('main.rs', rustCode, 'all');
       
       const issue = result.issues.find(i => i.rule === 'RS001');
       expect(issue).toBeDefined();
@@ -167,7 +167,7 @@ line4`;
 
     it('should apply Go-specific rules', () => {
       const goCode = `panic("error")`;
-      const result = analyzeCode('main.go', goCode, 'coding-standards');
+      const result = analyzeCode('main.go', goCode, 'all');
       
       const issue = result.issues.find(i => i.rule === 'GO002');
       expect(issue).toBeDefined();

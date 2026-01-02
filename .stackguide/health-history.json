@@ -1,0 +1,797 @@
+{
+  "projectPath": "/Users/macbookair_1/Desktop/Back_office/StackGuide-MCP",
+  "entries": [
+    {
+      "timestamp": "2025-12-31T06:29:40.789Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:29:40.800Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:29:40.840Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:29:40.843Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:29:40.846Z",
+      "score": 95,
+      "grade": "A",
+      "categories": {
+        "Configuration": 20,
+        "Code Quality": 30,
+        "Structure": 15,
+        "Documentation": 15,
+        "Testing": 15
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:29:40.864Z",
+      "score": 100,
+      "grade": "A",
+      "categories": {
+        "Configuration": 20,
+        "Code Quality": 30,
+        "Structure": 20,
+        "Documentation": 15,
+        "Testing": 15
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:29:40.870Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:29:40.874Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:29:40.876Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:29:40.901Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:29:40.903Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:30:37.829Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:30:37.842Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:30:37.849Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:30:37.851Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:30:37.853Z",
+      "score": 95,
+      "grade": "A",
+      "categories": {
+        "Configuration": 20,
+        "Code Quality": 30,
+        "Structure": 15,
+        "Documentation": 15,
+        "Testing": 15
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:30:37.868Z",
+      "score": 100,
+      "grade": "A",
+      "categories": {
+        "Configuration": 20,
+        "Code Quality": 30,
+        "Structure": 20,
+        "Documentation": 15,
+        "Testing": 15
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:30:37.874Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:30:37.876Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:30:37.878Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:30:37.896Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:30:37.898Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:33:46.665Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:33:46.677Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:33:46.688Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:33:46.691Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:33:46.698Z",
+      "score": 95,
+      "grade": "A",
+      "categories": {
+        "Configuration": 20,
+        "Code Quality": 30,
+        "Structure": 15,
+        "Documentation": 15,
+        "Testing": 15
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:33:46.711Z",
+      "score": 100,
+      "grade": "A",
+      "categories": {
+        "Configuration": 20,
+        "Code Quality": 30,
+        "Structure": 20,
+        "Documentation": 15,
+        "Testing": 15
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:33:46.715Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:33:46.718Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:33:46.719Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:33:46.739Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:33:46.742Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:34:24.498Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:34:24.508Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:34:24.512Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:34:24.518Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:34:24.530Z",
+      "score": 95,
+      "grade": "A",
+      "categories": {
+        "Configuration": 20,
+        "Code Quality": 30,
+        "Structure": 15,
+        "Documentation": 15,
+        "Testing": 15
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:34:24.584Z",
+      "score": 100,
+      "grade": "A",
+      "categories": {
+        "Configuration": 20,
+        "Code Quality": 30,
+        "Structure": 20,
+        "Documentation": 15,
+        "Testing": 15
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:34:24.586Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:34:24.588Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:34:24.590Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:34:24.608Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2025-12-31T06:34:24.616Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:10.185Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:10.194Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:10.197Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:10.200Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:10.203Z",
+      "score": 95,
+      "grade": "A",
+      "categories": {
+        "Configuration": 20,
+        "Code Quality": 30,
+        "Structure": 15,
+        "Documentation": 15,
+        "Testing": 15
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:10.221Z",
+      "score": 100,
+      "grade": "A",
+      "categories": {
+        "Configuration": 20,
+        "Code Quality": 30,
+        "Structure": 20,
+        "Documentation": 15,
+        "Testing": 15
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:10.225Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:10.228Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:10.230Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:10.242Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:10.246Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:42.371Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:42.384Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:42.408Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:42.411Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:42.414Z",
+      "score": 95,
+      "grade": "A",
+      "categories": {
+        "Configuration": 20,
+        "Code Quality": 30,
+        "Structure": 15,
+        "Documentation": 15,
+        "Testing": 15
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:42.423Z",
+      "score": 100,
+      "grade": "A",
+      "categories": {
+        "Configuration": 20,
+        "Code Quality": 30,
+        "Structure": 20,
+        "Documentation": 15,
+        "Testing": 15
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:42.426Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:42.431Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:42.436Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:42.443Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    },
+    {
+      "timestamp": "2026-01-02T23:21:42.448Z",
+      "score": 45,
+      "grade": "F",
+      "categories": {
+        "Configuration": 5,
+        "Code Quality": 15,
+        "Structure": 10,
+        "Documentation": 7,
+        "Testing": 8
+      }
+    }
+  ]
+}
