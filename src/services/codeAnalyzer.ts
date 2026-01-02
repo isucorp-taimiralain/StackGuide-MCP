@@ -1,20 +1,26 @@
 /**
- * Code Analyzer Service - v3.0.0
+ * Code Analyzer Service - v3.1.0
  * Unified rule pipeline that supports builtin, user, and project rules
+ * Now with AST-based analysis using ts-morph
  */
 
 import { logger } from '../utils/logger.js';
 import { 
-  PatternRule, 
+  PatternRule,
+  ASTRule,
   CodeIssue, 
   AnalysisResult, 
   QuickFix,
   IssueSeverity,
   AnalysisCategory
 } from '../config/types.js';
+import { analyzeWithAST, BUILTIN_AST_RULES, clearASTCache } from './astAnalyzer.js';
 
 // Re-export types for backwards compatibility
 export type { QuickFix, CodeIssue, AnalysisResult };
+
+// Re-export AST utilities
+export { clearASTCache };
 
 // =============================================================================
 // BUILTIN PATTERN RULES
@@ -512,45 +518,99 @@ const BUILTIN_PATTERN_RULES: PatternRule[] = [
 // =============================================================================
 
 /**
- * In-memory registry of all active rules
+ * In-memory registry of all active rules (Pattern + AST)
  */
 class RuleRegistry {
-  private builtinRules: PatternRule[] = [...BUILTIN_PATTERN_RULES];
-  private userRules: PatternRule[] = [];
-  private projectRules: PatternRule[] = [];
+  private builtinPatternRules: PatternRule[] = [...BUILTIN_PATTERN_RULES];
+  private builtinASTRules: ASTRule[] = [...BUILTIN_AST_RULES];
+  private userPatternRules: PatternRule[] = [];
+  private userASTRules: ASTRule[] = [];
+  private projectPatternRules: PatternRule[] = [];
+  private projectASTRules: ASTRule[] = [];
+
+  // For backwards compatibility
+  private get builtinRules(): PatternRule[] {
+    return this.builtinPatternRules;
+  }
+  private get userRules(): PatternRule[] {
+    return this.userPatternRules;
+  }
+  private set userRules(rules: PatternRule[]) {
+    this.userPatternRules = rules;
+  }
+  private get projectRules(): PatternRule[] {
+    return this.projectPatternRules;
+  }
+  private set projectRules(rules: PatternRule[]) {
+    this.projectPatternRules = rules;
+  }
 
   /**
-   * Get all builtin rules
+   * Get all builtin pattern rules
    */
   getBuiltinRules(): PatternRule[] {
-    return this.builtinRules.filter(r => r.enabled);
+    return this.builtinPatternRules.filter(r => r.enabled);
   }
 
   /**
-   * Get all user-defined rules
+   * Get all builtin AST rules
+   */
+  getBuiltinASTRules(): ASTRule[] {
+    return this.builtinASTRules.filter(r => r.enabled);
+  }
+
+  /**
+   * Get all user-defined pattern rules
    */
   getUserRules(): PatternRule[] {
-    return this.userRules.filter(r => r.enabled);
+    return this.userPatternRules.filter(r => r.enabled);
   }
 
   /**
-   * Get all project-specific rules
+   * Get all user-defined AST rules
+   */
+  getUserASTRules(): ASTRule[] {
+    return this.userASTRules.filter(r => r.enabled);
+  }
+
+  /**
+   * Get all project-specific pattern rules
    */
   getProjectRules(): PatternRule[] {
-    return this.projectRules.filter(r => r.enabled);
+    return this.projectPatternRules.filter(r => r.enabled);
   }
 
   /**
-   * Get all active rules, sorted by priority (highest first)
+   * Get all project-specific AST rules
+   */
+  getProjectASTRules(): ASTRule[] {
+    return this.projectASTRules.filter(r => r.enabled);
+  }
+
+  /**
+   * Get all active pattern rules, sorted by priority (highest first)
    */
   getAllRules(): PatternRule[] {
     const all = [
-      ...this.builtinRules,
-      ...this.userRules,
-      ...this.projectRules
+      ...this.builtinPatternRules,
+      ...this.userPatternRules,
+      ...this.projectPatternRules
     ].filter(r => r.enabled);
 
     // Sort by priority (higher priority = runs first)
+    return all.sort((a, b) => b.priority - a.priority);
+  }
+
+  /**
+   * Get all active AST rules, sorted by priority (highest first)
+   */
+  getAllASTRules(): ASTRule[] {
+    const all = [
+      ...this.builtinASTRules,
+      ...this.userASTRules,
+      ...this.projectASTRules
+    ].filter(r => r.enabled);
+
     return all.sort((a, b) => b.priority - a.priority);
   }
 
@@ -565,8 +625,8 @@ class RuleRegistry {
     };
     
     // Remove existing rule with same ID
-    this.userRules = this.userRules.filter(r => r.id !== rule.id);
-    this.userRules.push(fullRule);
+    this.userPatternRules = this.userPatternRules.filter(r => r.id !== rule.id);
+    this.userPatternRules.push(fullRule);
     
     logger.info('Registered user rule', { ruleId: rule.id });
   }
@@ -582,8 +642,8 @@ class RuleRegistry {
     };
     
     // Remove existing rule with same ID
-    this.projectRules = this.projectRules.filter(r => r.id !== rule.id);
-    this.projectRules.push(fullRule);
+    this.projectPatternRules = this.projectPatternRules.filter(r => r.id !== rule.id);
+    this.projectPatternRules.push(fullRule);
     
     logger.info('Registered project rule', { ruleId: rule.id });
   }
@@ -598,55 +658,118 @@ class RuleRegistry {
   }
 
   /**
-   * Clear all user rules
+   * Register a user-defined AST rule
+   */
+  registerUserASTRule(rule: Omit<ASTRule, 'source' | 'type'>): void {
+    const fullRule: ASTRule = {
+      ...rule,
+      type: 'ast',
+      source: 'user'
+    };
+    
+    this.userASTRules = this.userASTRules.filter(r => r.id !== rule.id);
+    this.userASTRules.push(fullRule);
+    
+    logger.info('Registered user AST rule', { ruleId: rule.id });
+  }
+
+  /**
+   * Register a project-specific AST rule
+   */
+  registerProjectASTRule(rule: Omit<ASTRule, 'source' | 'type'>): void {
+    const fullRule: ASTRule = {
+      ...rule,
+      type: 'ast',
+      source: 'project'
+    };
+    
+    this.projectASTRules = this.projectASTRules.filter(r => r.id !== rule.id);
+    this.projectASTRules.push(fullRule);
+    
+    logger.info('Registered project AST rule', { ruleId: rule.id });
+  }
+
+  /**
+   * Clear all user rules (pattern + AST)
    */
   clearUserRules(): void {
-    this.userRules = [];
+    this.userPatternRules = [];
+    this.userASTRules = [];
     logger.info('Cleared user rules');
   }
 
   /**
-   * Clear all project rules
+   * Clear all project rules (pattern + AST)
    */
   clearProjectRules(): void {
-    this.projectRules = [];
+    this.projectPatternRules = [];
+    this.projectASTRules = [];
     logger.info('Cleared project rules');
   }
 
   /**
-   * Disable a builtin rule by ID
+   * Disable a builtin rule by ID (pattern or AST)
    */
   disableBuiltinRule(ruleId: string): boolean {
-    const rule = this.builtinRules.find(r => r.id === ruleId);
-    if (rule) {
-      rule.enabled = false;
-      logger.info('Disabled builtin rule', { ruleId });
+    // Check pattern rules
+    const patternRule = this.builtinPatternRules.find(r => r.id === ruleId);
+    if (patternRule) {
+      patternRule.enabled = false;
+      logger.info('Disabled builtin pattern rule', { ruleId });
       return true;
     }
+    
+    // Check AST rules
+    const astRule = this.builtinASTRules.find(r => r.id === ruleId);
+    if (astRule) {
+      astRule.enabled = false;
+      logger.info('Disabled builtin AST rule', { ruleId });
+      return true;
+    }
+    
     return false;
   }
 
   /**
-   * Enable a builtin rule by ID
+   * Enable a builtin rule by ID (pattern or AST)
    */
   enableBuiltinRule(ruleId: string): boolean {
-    const rule = this.builtinRules.find(r => r.id === ruleId);
-    if (rule) {
-      rule.enabled = true;
-      logger.info('Enabled builtin rule', { ruleId });
+    // Check pattern rules
+    const patternRule = this.builtinPatternRules.find(r => r.id === ruleId);
+    if (patternRule) {
+      patternRule.enabled = true;
+      logger.info('Enabled builtin pattern rule', { ruleId });
       return true;
     }
+    
+    // Check AST rules
+    const astRule = this.builtinASTRules.find(r => r.id === ruleId);
+    if (astRule) {
+      astRule.enabled = true;
+      logger.info('Enabled builtin AST rule', { ruleId });
+      return true;
+    }
+    
     return false;
   }
 
   /**
    * Get statistics about registered rules
    */
-  getStats(): { builtin: number; user: number; project: number; total: number } {
-    const builtin = this.builtinRules.filter(r => r.enabled).length;
-    const user = this.userRules.filter(r => r.enabled).length;
-    const project = this.projectRules.filter(r => r.enabled).length;
-    return { builtin, user, project, total: builtin + user + project };
+  getStats(): { builtin: number; user: number; project: number; total: number; ast: number } {
+    const builtinPattern = this.builtinPatternRules.filter(r => r.enabled).length;
+    const builtinAST = this.builtinASTRules.filter(r => r.enabled).length;
+    const userPattern = this.userPatternRules.filter(r => r.enabled).length;
+    const userAST = this.userASTRules.filter(r => r.enabled).length;
+    const projectPattern = this.projectPatternRules.filter(r => r.enabled).length;
+    const projectAST = this.projectASTRules.filter(r => r.enabled).length;
+    
+    const builtin = builtinPattern + builtinAST;
+    const user = userPattern + userAST;
+    const project = projectPattern + projectAST;
+    const ast = builtinAST + userAST + projectAST;
+    
+    return { builtin, user, project, total: builtin + user + project, ast };
   }
 }
 
@@ -747,6 +870,41 @@ export function analyzeCode(
       // Prevent infinite loop on zero-length matches
       if (match.index === rule.pattern.lastIndex) {
         rule.pattern.lastIndex++;
+      }
+    }
+  }
+
+  // ==========================================================================
+  // PHASE 2: Apply AST rules (for TS/JS files)
+  // ==========================================================================
+  const isJsTsFile = ['typescript', 'tsx', 'javascript', 'jsx'].includes(language);
+  
+  if (isJsTsFile) {
+    const astRules = ruleRegistry.getAllASTRules();
+    
+    // Filter AST rules by focus and language
+    const applicableASTRules = astRules.filter(rule => {
+      if (focus !== 'all' && rule.category !== focus) return false;
+      if (rule.languages && !rule.languages.includes(language)) return false;
+      return true;
+    });
+    
+    if (applicableASTRules.length > 0) {
+      logger.debug('Applying AST rules', { 
+        file, 
+        astRuleCount: applicableASTRules.length 
+      });
+      
+      try {
+        const astIssues = analyzeWithAST(file, content, applicableASTRules);
+        
+        // Add AST issues and track sources
+        for (const issue of astIssues) {
+          issues.push(issue);
+          rulesApplied[issue.source]++;
+        }
+      } catch (error) {
+        logger.warn('AST analysis failed', { file, error: String(error) });
       }
     }
   }

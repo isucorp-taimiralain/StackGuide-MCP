@@ -80,13 +80,61 @@ export interface PatternRule extends BaseAnalysisRule {
 }
 
 /**
- * AST-based rule (future implementation - Phase 2)
+ * AST-based rule (Phase 2 implementation)
+ * Uses ts-morph for semantic code analysis
  */
 export interface ASTRule extends BaseAnalysisRule {
   type: 'ast';
-  nodeType: string;  // e.g., 'CallExpression', 'FunctionDeclaration'
-  check: (node: unknown) => boolean;
-  quickFix?: (node: unknown) => QuickFix | undefined;
+  /** 
+   * Node types to check. Maps to ts-morph SyntaxKind.
+   * Examples: 'CallExpression', 'FunctionDeclaration', 'VariableDeclaration', 'ClassDeclaration'
+   */
+  nodeTypes: string[];
+  /**
+   * The check function receives the node and source file context.
+   * Returns an ASTCheckResult with issue details if a problem is found.
+   */
+  check: (context: ASTCheckContext) => ASTCheckResult | null;
+  /**
+   * Optional quick fix generator
+   */
+  quickFix?: (context: ASTCheckContext) => QuickFix | undefined;
+}
+
+/**
+ * Context passed to AST rule check functions
+ */
+export interface ASTCheckContext {
+  /** The node being checked (ts-morph Node) */
+  node: unknown;
+  /** The source file being analyzed */
+  sourceFile: unknown;
+  /** File path */
+  filePath: string;
+  /** Full source code text */
+  sourceText: string;
+  /** Helper to get node text */
+  getNodeText: () => string;
+  /** Helper to get node start line */
+  getStartLine: () => number;
+  /** Helper to get node type references (for type checking) */
+  getTypeText?: () => string;
+}
+
+/**
+ * Result from an AST rule check
+ */
+export interface ASTCheckResult {
+  /** Whether an issue was found */
+  hasIssue: boolean;
+  /** Custom message override (optional) */
+  message?: string;
+  /** Additional context for the issue */
+  details?: string;
+  /** The problematic code snippet */
+  code?: string;
+  /** Line number of the issue */
+  line?: number;
 }
 
 /**
