@@ -1,5 +1,8 @@
 import { URL } from 'url';
+import crypto from 'crypto';
 import { logger } from '../utils/logger.js';
+import { safeFetch } from '../utils/safeFetch.js';
+import { sanitizeForPrompt } from '../validation/schemas.js';
 
 // Web documentation structure
 export interface WebDocument {
@@ -12,10 +15,50 @@ export interface WebDocument {
   projectType?: string;
   category?: string;
   tags: string[];
+  projectKey?: string;
 }
 
 // Web documents cache
-const webDocCache: Map<string, WebDocument> = new Map();
+interface CacheEntry {
+  doc: WebDocument;
+  projectKey: string;
+  expiresAt: number;
+}
+
+const webDocCache: Map<string, CacheEntry> = new Map();
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+const ALLOWED_DOC_HOSTS = [
+  'github.com',
+  'raw.githubusercontent.com',
+  'example.com',
+  'developer.mozilla.org',
+  'nextjs.org',
+  'react.dev',
+  'nodejs.org',
+  'docs.djangoproject.com',
+  'fastapi.tiangolo.com',
+  'flask.palletsprojects.com'
+];
+
+function getProjectKey(projectPath?: string): string {
+  const target = projectPath ? projectPath : process.cwd();
+  const normalized = target.replace(/\\/g, '/');
+  return crypto.createHash('sha256').update(normalized).digest('hex').slice(0, 12);
+}
+
+function cacheKey(projectKey: string, url: string): string {
+  return `${projectKey}:${url}`;
+}
+
+function pruneExpired(): void {
+  const now = Date.now();
+  for (const [key, entry] of webDocCache.entries()) {
+    if (entry.expiresAt <= now) {
+      webDocCache.delete(key);
+    }
+  }
+}
 
 // ============================================================================
 // Rate Limiting
@@ -233,9 +276,13 @@ export async function fetchWebDocumentation(
     projectType?: string;
     category?: string;
     tags?: string[];
+    projectPath?: string;
   } = {}
 ): Promise<WebDocument> {
   const startTime = Date.now();
+  pruneExpired();
+  const projectKey = getProjectKey(options.projectPath);
+  const key = cacheKey(projectKey, url);
   
   // Rate limiting check
   const rateCheck = checkRateLimit('global');
@@ -249,9 +296,10 @@ export async function fetchWebDocumentation(
   }
   
   // Check cache
-  if (webDocCache.has(url)) {
-    logger.debug('Cache hit', { url, action: 'cache_hit' });
-    return webDocCache.get(url)!;
+  const cached = webDocCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    logger.debug('Cache hit', { url, action: 'cache_hit', projectKey });
+    return cached.doc;
   }
   
   // Validate URL format
@@ -277,14 +325,20 @@ export async function fetchWebDocumentation(
   logger.info('Fetching web documentation', { 
     url, 
     projectType: options.projectType,
+    projectKey,
     action: 'fetch_start'
   });
   
   // Fetch content
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'StackGuide-MCP/1.0 (Documentation Fetcher)',
-      'Accept': 'text/html,application/xhtml+xml,text/plain,text/markdown'
+  const response = await safeFetch(url, {
+    allowedHosts: ALLOWED_DOC_HOSTS,
+    timeoutMs: 12000,
+    maxBytes: 2 * 1024 * 1024,
+    fetchOptions: {
+      headers: {
+        'User-Agent': 'StackGuide-MCP/1.0 (Documentation Fetcher)',
+        'Accept': 'text/html,application/xhtml+xml,text/plain,text/markdown'
+      }
     }
   });
   
@@ -315,21 +369,30 @@ export async function fetchWebDocumentation(
     content = await response.text();
     title = new URL(url).pathname.split('/').pop() || 'Untitled';
   }
+
+  // Prompt-safety: strip control/directional chars and scripts before caching/using downstream
+  const sanitizedContent = sanitizeForPrompt(content, 8000);
+  const sanitizedTitle = sanitizeForPrompt(title, 300);
   
   const doc: WebDocument = {
     id: `web-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     url,
-    title,
-    content,
-    summary: generateSummary(content),
+    title: sanitizedTitle,
+    content: sanitizedContent,
+    summary: generateSummary(sanitizedContent),
     fetchedAt: new Date().toISOString(),
     projectType: options.projectType,
     category: options.category,
-    tags: options.tags || []
+    tags: options.tags || [],
+    projectKey
   };
   
   // Save to cache
-  webDocCache.set(url, doc);
+  webDocCache.set(key, {
+    doc,
+    projectKey,
+    expiresAt: Date.now() + CACHE_TTL_MS
+  });
   
   // Audit log: fetch complete
   const duration = Date.now() - startTime;
@@ -364,9 +427,15 @@ export async function fetchMultipleDocuments(
     if (result.status === 'fulfilled') {
       successful.push(result.value);
     } else {
+      const errorMessage = result.reason?.message || 'Unknown error';
+      logger.warn('Web documentation fetch failed', {
+        url: urls[index],
+        error: errorMessage,
+        action: 'fetch_multi_failed'
+      });
       failed.push({
         url: urls[index],
-        error: result.reason?.message || 'Unknown error'
+        error: errorMessage
       });
     }
   });
@@ -379,7 +448,8 @@ export function searchWebDocuments(query: string): WebDocument[] {
   const results: WebDocument[] = [];
   const queryLower = query.toLowerCase();
   
-  for (const doc of webDocCache.values()) {
+  pruneExpired();
+  for (const { doc } of webDocCache.values()) {
     if (
       doc.title.toLowerCase().includes(queryLower) ||
       doc.content.toLowerCase().includes(queryLower) ||
@@ -394,7 +464,8 @@ export function searchWebDocuments(query: string): WebDocument[] {
 
 // Get document by ID
 export function getWebDocumentById(id: string): WebDocument | null {
-  for (const doc of webDocCache.values()) {
+  pruneExpired();
+  for (const { doc } of webDocCache.values()) {
     if (doc.id === id) return doc;
   }
   return null;
@@ -402,12 +473,17 @@ export function getWebDocumentById(id: string): WebDocument | null {
 
 // Get document by URL
 export function getWebDocumentByUrl(url: string): WebDocument | null {
-  return webDocCache.get(url) || null;
+  pruneExpired();
+  for (const { doc } of webDocCache.values()) {
+    if (doc.url === url) return doc;
+  }
+  return null;
 }
 
 // List all cached documents
 export function listCachedDocuments(): Omit<WebDocument, 'content'>[] {
-  return Array.from(webDocCache.values()).map(doc => ({
+  pruneExpired();
+  return Array.from(webDocCache.values()).map(({ doc }) => ({
     id: doc.id,
     url: doc.url,
     title: doc.title,
@@ -426,19 +502,15 @@ export function clearWebDocCache(): void {
 
 // Remove document from cache
 export function removeFromCache(urlOrId: string): boolean {
-  if (webDocCache.has(urlOrId)) {
-    webDocCache.delete(urlOrId);
-    return true;
-  }
-  
-  for (const [url, doc] of webDocCache.entries()) {
-    if (doc.id === urlOrId) {
-      webDocCache.delete(url);
-      return true;
+  pruneExpired();
+  let removed = false;
+  for (const [key, entry] of webDocCache.entries()) {
+    if (entry.doc.id === urlOrId || entry.doc.url === urlOrId) {
+      webDocCache.delete(key);
+      removed = true;
     }
   }
-  
-  return false;
+  return removed;
 }
 
 // Popular documentation URLs by framework

@@ -286,6 +286,21 @@ export function sanitizeForDisplay(input: string, maxLength = 1000): string {
 }
 
 /**
+ * Sanitize arbitrary content before sending to a prompt/LLM.
+ * Removes control/directional chars and script/style blocks, and enforces length.
+ */
+export function sanitizeForPrompt(input: string, maxLength = 8000): string {
+  const withoutControls = input
+    .slice(0, maxLength)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/[\u202A-\u202E\u2066-\u2069]/g, '');
+
+  const withoutScripts = withoutControls.replace(/<\s*(script|style)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '');
+
+  return withoutScripts.trim();
+}
+
+/**
  * Sanitize file path
  */
 export function sanitizePath(input: string): string {

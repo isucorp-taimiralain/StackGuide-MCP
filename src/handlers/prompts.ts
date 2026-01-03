@@ -6,6 +6,7 @@
 import { ProjectType, SUPPORTED_PROJECTS } from '../config/types.js';
 import * as autoDetect from '../services/autoDetect.js';
 import { ServerState } from './types.js';
+import { safeFetch } from '../utils/safeFetch.js';
 
 // ============================================================================
 // Types
@@ -32,6 +33,13 @@ export interface PromptInfo {
     required: boolean;
   }>;
 }
+
+const ALLOWED_PROMPT_HOSTS = [
+  'github.com',
+  'raw.githubusercontent.com',
+  'gitlab.com',
+  'bitbucket.org'
+];
 
 // ============================================================================
 // Prompt Definitions
@@ -174,10 +182,14 @@ export async function handleCodeReviewPrompt(
 
   if (url && !codeToReview) {
     try {
-      const response = await fetch(url);
+      const response = await safeFetch(url, {
+        allowedHosts: ALLOWED_PROMPT_HOSTS,
+        timeoutMs: 8000,
+        maxBytes: 1024 * 512, // 512 KB cap from prompts
+      });
       codeToReview = await response.text();
       source = url;
-    } catch { /* ignore */ }
+    } catch { /* ignore to keep prompt usable */ }
   }
 
   const rules = state.loadedRules

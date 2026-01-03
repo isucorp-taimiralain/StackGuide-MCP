@@ -38,6 +38,7 @@ export {
   
   // Sanitization utilities
   sanitizeForDisplay,
+  sanitizeForPrompt,
   sanitizePath,
   sanitizeIdentifier,
   

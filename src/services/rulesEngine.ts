@@ -8,6 +8,43 @@ import { z } from 'zod';
 import { logger } from '../utils/logger.js';
 import { getStorageValue, setStorageValue } from '../config/persistence.js';
 
+// Basic regex safety heuristics to guard against ReDoS-prone patterns
+const REGEX_MAX_LENGTH = 5000;
+const NESTED_QUANTIFIER_REGEX = /\((?:[^()\\]|\\.)*(?:\.\*|\.\+|\[[^\]]+\][+*]|\\w\+|\\d\+)(?:[^()\\]|\\.)*\)[+*]/;
+const BACKREFERENCE_WITH_REPEAT = /\\[1-9][0-9]*\+/;
+
+function validateRegexPattern(pattern: string): { valid: boolean; reason?: string } {
+  if (pattern.length > REGEX_MAX_LENGTH) {
+    return { valid: false, reason: 'Pattern exceeds maximum length' };
+  }
+
+  if (NESTED_QUANTIFIER_REGEX.test(pattern)) {
+    return { valid: false, reason: 'Nested quantifier detected (potential ReDoS)' };
+  }
+
+  if (BACKREFERENCE_WITH_REPEAT.test(pattern)) {
+    return { valid: false, reason: 'Backreference with repetition detected (potential ReDoS)' };
+  }
+
+  try {
+    new RegExp(pattern);
+  } catch (error) {
+    return { valid: false, reason: `Invalid regex: ${error instanceof Error ? error.message : String(error)}` };
+  }
+
+  return { valid: true };
+}
+
+function assertSafeRegex(pattern: string, ctx: z.RefinementCtx): void {
+  const result = validateRegexPattern(pattern);
+  if (!result.valid) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: result.reason || 'Unsafe regex pattern'
+    });
+  }
+}
+
 // ============================================================================
 // Rule Schema
 // ============================================================================
@@ -39,10 +76,15 @@ export const RuleDefinitionSchema = z.object({
   
   // Matching criteria
   languages: z.array(z.string().max(50)).optional(),
-  filePatterns: z.array(z.string().max(200)).optional(),
+  filePatterns: z.array(
+    z.string().max(200).superRefine((val, ctx) => assertSafeRegex(val, ctx))
+  ).optional(),
   
   // Detection
-  pattern: z.string().max(5000).optional(), // Regex pattern
+  pattern: z.string().max(REGEX_MAX_LENGTH).optional().superRefine((val, ctx) => {
+    if (val === undefined) return;
+    assertSafeRegex(val, ctx);
+  }), // Regex pattern
   astQuery: z.string().max(5000).optional(), // Tree-sitter query
   
   // Messages
@@ -327,6 +369,11 @@ class RulesRegistry {
       if (rule.filePatterns && rule.filePatterns.length > 0) {
         const matches = rule.filePatterns.some(pattern => {
           try {
+            const safety = validateRegexPattern(pattern);
+            if (!safety.valid) {
+              logger.warn('Skipped unsafe file pattern', { pattern, reason: safety.reason, action: 'unsafe_file_pattern' });
+              return false;
+            }
             const regex = new RegExp(pattern);
             return regex.test(filePath);
           } catch {

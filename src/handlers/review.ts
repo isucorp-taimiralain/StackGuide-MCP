@@ -25,6 +25,7 @@ import { AnalysisCacheManager } from '../services/analysisCache.js';
 import { ServerState, ToolResponse, jsonResponse, textResponse } from './types.js';
 import { logger } from '../utils/logger.js';
 import { sanitizePath } from '../validation/schemas.js';
+import { safeFetch } from '../utils/safeFetch.js';
 
 interface ReviewArgs {
   file?: string;
@@ -38,6 +39,13 @@ interface ReviewArgs {
 }
 
 type ReviewFocus = 'all' | 'security' | 'performance' | 'architecture' | 'coding-standards';
+
+const ALLOWED_REVIEW_HOSTS = [
+  'github.com',
+  'raw.githubusercontent.com',
+  'gitlab.com',
+  'bitbucket.org'
+];
 
 // Default ignore patterns (in addition to .gitignore)
 const DEFAULT_IGNORE_PATTERNS = [
@@ -392,11 +400,15 @@ export async function handleReview(
 
   if (url) {
     try {
-      const response = await fetch(url);
+      const response = await safeFetch(url, {
+        allowedHosts: ALLOWED_REVIEW_HOSTS,
+        timeoutMs: 8000,
+        maxBytes: 1024 * 1024, // 1 MB cap for reviews
+      });
       content = await response.text();
       source = url;
     } catch (e) {
-      return textResponse(`Error fetching URL: ${e}`);
+      return textResponse(`Error fetching URL: ${e instanceof Error ? e.message : String(e)}`);
     }
   } else if (file) {
     const fs = await import('fs');
@@ -405,26 +417,43 @@ export async function handleReview(
     // Security: Sanitize path and prevent path traversal
     const sanitized = sanitizePath(file);
     const cwd = process.cwd();
-    const resolved = path.isAbsolute(sanitized) 
+    const resolved = path.isAbsolute(sanitized)
       ? path.resolve(sanitized)
       : path.resolve(cwd, sanitized);
-    
-    // Ensure the resolved path is within the current working directory
-    if (!resolved.startsWith(cwd + path.sep) && resolved !== cwd) {
-      logger.audit('PATH_TRAVERSAL_BLOCK', { 
+
+    // Resolve symlinks and enforce real path containment
+    const realCwd = fs.realpathSync(cwd);
+
+    // First containment check without resolving symlinks to avoid ENOENT on missing files
+    if (!resolved.startsWith(realCwd + path.sep) && resolved !== realCwd) {
+      logger.audit('PATH_TRAVERSAL_BLOCK', {
         originalPath: file,
         sanitizedPath: sanitized,
         resolvedPath: resolved,
-        cwd,
+        cwd: realCwd,
+        action: 'path_traversal_block_pre_realpath'
+      });
+      return textResponse(`Error: Path traversal detected. Access denied to: ${file}`);
+    }
+
+    if (!fs.existsSync(resolved)) {
+      return textResponse(`File not found: ${resolved}`);
+    }
+
+    const realResolved = fs.realpathSync(resolved);
+
+    if (!realResolved.startsWith(realCwd + path.sep) && realResolved !== realCwd) {
+      logger.audit('PATH_TRAVERSAL_BLOCK', { 
+        originalPath: file,
+        sanitizedPath: sanitized,
+        resolvedPath: realResolved,
+        cwd: realCwd,
         action: 'path_traversal_block'
       });
       return textResponse(`Error: Path traversal detected. Access denied to: ${file}`);
     }
     
-    if (!fs.existsSync(resolved)) {
-      return textResponse(`File not found: ${resolved}`);
-    }
-    content = fs.readFileSync(resolved, 'utf-8');
+    content = fs.readFileSync(realResolved, 'utf-8');
     source = file;
   } else {
     return textResponse('Specify file, url, or project:true');
