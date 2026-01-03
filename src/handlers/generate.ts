@@ -11,6 +11,7 @@
 import { ServerState, ToolResponse, jsonResponse, textResponse } from './types.js';
 import { logger } from '../utils/logger.js';
 import { detectConventions, CodeConventions, formatWithConventions } from '../services/conventionDetector.js';
+import { GenerateInputSchema, validate } from '../validation/schemas.js';
 
 interface GenerateArgs {
   type: 'component' | 'hook' | 'service' | 'test' | 'api' | 'model' | 'util';
@@ -821,18 +822,20 @@ module.exports = { format${name}, parse${name}, isValid${name} };
 };
 
 export async function handleGenerate(
-  args: GenerateArgs,
+  args: unknown,
   state: ServerState
 ): Promise<ToolResponse> {
-  const { type, name, options = {} } = args;
-
-  if (!type || !name) {
+  // Validate input
+  const validation = validate(GenerateInputSchema, args || {});
+  if (!validation.success) {
     return jsonResponse({
-      error: 'Both type and name are required',
+      error: `Validation error: ${validation.error}`,
       availableTypes: Object.keys(templates),
       example: 'generate type:"component" name:"UserCard"'
     });
   }
+  
+  const { type, name, options = {} } = validation.data;
 
   // Detect project conventions
   const conventions = options.scanProject !== false ? getProjectConventions() : null;

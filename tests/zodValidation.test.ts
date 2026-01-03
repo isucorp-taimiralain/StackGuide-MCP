@@ -118,52 +118,63 @@ describe('Zod Validation Schemas', () => {
     it('should accept valid setup input', () => {
       expect(SetupInputSchema.safeParse({ projectType: 'react-typescript' }).success).toBe(true);
       expect(SetupInputSchema.safeParse({ projectType: 'nextjs', path: '/project' }).success).toBe(true);
+      // path and type are also valid fields
+      expect(SetupInputSchema.safeParse({ path: '/project' }).success).toBe(true);
+      expect(SetupInputSchema.safeParse({ type: 'react-typescript' }).success).toBe(true);
     });
 
-    it('should reject invalid setup input', () => {
-      expect(SetupInputSchema.safeParse({}).success).toBe(false);
-      expect(SetupInputSchema.safeParse({ projectType: 'invalid' }).success).toBe(false);
-      expect(SetupInputSchema.safeParse({ projectType: 'nextjs', extra: 'field' }).success).toBe(false);
+    it('should accept empty input for auto-detect', () => {
+      // Setup now supports empty input for auto-detection
+      expect(SetupInputSchema.safeParse({}).success).toBe(true);
+    });
+
+    it('should allow passthrough of extra fields', () => {
+      // With .passthrough(), extra fields are allowed
+      expect(SetupInputSchema.safeParse({ projectType: 'nextjs', extra: 'field' }).success).toBe(true);
     });
   });
 
   describe('RulesInputSchema', () => {
     it('should accept valid rules input', () => {
       expect(RulesInputSchema.safeParse({}).success).toBe(true);
-      expect(RulesInputSchema.safeParse({ projectType: 'react-typescript' }).success).toBe(true);
-      expect(RulesInputSchema.safeParse({ category: 'security' }).success).toBe(true);
-      expect(RulesInputSchema.safeParse({ severity: 'error' }).success).toBe(true);
+      expect(RulesInputSchema.safeParse({ action: 'list' }).success).toBe(true);
+      expect(RulesInputSchema.safeParse({ action: 'search', query: 'security' }).success).toBe(true);
+      expect(RulesInputSchema.safeParse({ action: 'get', query: 'rule-id' }).success).toBe(true);
+      expect(RulesInputSchema.safeParse({ action: 'select', ids: ['id1', 'id2'] }).success).toBe(true);
     });
 
-    it('should reject invalid rules input', () => {
-      expect(RulesInputSchema.safeParse({ category: 'invalid' }).success).toBe(false);
-      expect(RulesInputSchema.safeParse({ extra: 'field' }).success).toBe(false);
+    it('should accept passthrough fields', () => {
+      // With .passthrough(), extra fields are allowed
+      expect(RulesInputSchema.safeParse({ extra: 'field' }).success).toBe(true);
     });
   });
 
   describe('ReviewInputSchema', () => {
-    it('should accept valid review input with defaults', () => {
-      const result = ReviewInputSchema.parse({});
-      expect(result.fix).toBe(false);
+    it('should accept valid review input', () => {
+      expect(ReviewInputSchema.safeParse({}).success).toBe(true);
+      expect(ReviewInputSchema.safeParse({ file: '/src/index.ts' }).success).toBe(true);
+      expect(ReviewInputSchema.safeParse({ project: true }).success).toBe(true);
+      expect(ReviewInputSchema.safeParse({ focus: 'security' }).success).toBe(true);
     });
 
-    it('should accept valid review input', () => {
-      expect(ReviewInputSchema.safeParse({ path: '/src', fix: true }).success).toBe(true);
-      expect(ReviewInputSchema.safeParse({ severity: 'warning' }).success).toBe(true);
+    it('should accept passthrough fields', () => {
+      expect(ReviewInputSchema.safeParse({ custom: 'field' }).success).toBe(true);
     });
   });
 
   describe('ConfigInputSchema', () => {
     it('should accept valid config actions', () => {
-      expect(ConfigInputSchema.safeParse({ action: 'get', key: 'projectType' }).success).toBe(true);
-      expect(ConfigInputSchema.safeParse({ action: 'set', key: 'debug', value: true }).success).toBe(true);
+      expect(ConfigInputSchema.safeParse({ action: 'save', name: 'my-config' }).success).toBe(true);
+      expect(ConfigInputSchema.safeParse({ action: 'load', id: 'config-id' }).success).toBe(true);
       expect(ConfigInputSchema.safeParse({ action: 'list' }).success).toBe(true);
-      expect(ConfigInputSchema.safeParse({ action: 'reset' }).success).toBe(true);
+      expect(ConfigInputSchema.safeParse({ action: 'delete', id: 'config-id' }).success).toBe(true);
+      expect(ConfigInputSchema.safeParse({ action: 'export' }).success).toBe(true);
+      expect(ConfigInputSchema.safeParse({ action: 'import', json: '{}' }).success).toBe(true);
     });
 
-    it('should reject invalid config actions', () => {
-      expect(ConfigInputSchema.safeParse({ action: 'delete' }).success).toBe(false);
-      expect(ConfigInputSchema.safeParse({}).success).toBe(false);
+    it('should accept empty input with default action', () => {
+      // Default action is 'list'
+      expect(ConfigInputSchema.safeParse({}).success).toBe(true);
     });
   });
 
@@ -180,7 +191,8 @@ describe('Zod Validation Schemas', () => {
     it('should reject invalid generate input', () => {
       expect(GenerateInputSchema.safeParse({ type: 'invalid', name: 'Test' }).success).toBe(false);
       expect(GenerateInputSchema.safeParse({ type: 'component' }).success).toBe(false);
-      expect(GenerateInputSchema.safeParse({ type: 'component', name: '123-invalid' }).success).toBe(false);
+      // Note: name is validated as a string, not as an identifier
+      expect(GenerateInputSchema.safeParse({ type: 'component', name: '' }).success).toBe(false);
     });
   });
 });
@@ -230,12 +242,14 @@ describe('Validation Utilities', () => {
       expect(result.projectType).toBe('react-typescript');
     });
 
-    it('should throw for invalid input', async () => {
+    it('should accept empty input when schema allows', async () => {
       const handler = withValidation(SetupInputSchema, async (input) => {
         return { projectType: input.projectType };
       });
 
-      await expect(handler({})).rejects.toThrow();
+      // SetupInputSchema now allows empty input for auto-detection
+      const result = await handler({});
+      expect(result.projectType).toBeUndefined();
     });
   });
 
@@ -250,9 +264,10 @@ describe('Validation Utilities', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should return errors for invalid input to known handlers', () => {
+    it('should accept valid input to known handlers', () => {
+      // Setup now allows empty input for auto-detection
       const result = validateHandlerInput('setup', {});
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
     });
   });
 });

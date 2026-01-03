@@ -5,19 +5,19 @@
 import * as webDocs from '../services/webDocumentation.js';
 import { ServerState, ToolResponse, jsonResponse, textResponse } from './types.js';
 import { logger } from '../utils/logger.js';
-
-interface DocsArgs {
-  action?: 'fetch' | 'search' | 'list' | 'get' | 'remove' | 'suggest';
-  url?: string;
-  urls?: string[];
-  query?: string;
-}
+import { DocsInputSchema, validate } from '../validation/schemas.js';
 
 export async function handleDocs(
-  args: DocsArgs,
+  args: unknown,
   state: ServerState
 ): Promise<ToolResponse> {
-  const { action = 'list', url, urls, query } = args;
+  // Validate input
+  const validation = validate(DocsInputSchema, args || {});
+  if (!validation.success) {
+    return textResponse(`Validation error: ${validation.error}`);
+  }
+  
+  const { action = 'list', url, urls, query } = validation.data;
   const pt = state.activeProjectType;
 
   logger.debug('Docs action', { action, url, query });

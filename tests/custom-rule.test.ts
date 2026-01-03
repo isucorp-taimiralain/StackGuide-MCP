@@ -68,7 +68,7 @@ describe('custom-rule handler', () => {
           action: 'create',
           name: 'My Custom Rule',
           content: '# Rule content\nFollow these guidelines',
-          category: 'coding'
+          category: 'coding-standards'
         }, state);
         const data = JSON.parse(response.content[0].text);
         
@@ -77,7 +77,7 @@ describe('custom-rule handler', () => {
         expect(data.name).toBe('My Custom Rule');
         expect(ruleManager.createUserRule).toHaveBeenCalledWith(
           'react-typescript',
-          'coding',
+          'coding-standards',
           'My Custom Rule',
           '# Rule content\nFollow these guidelines'
         );
@@ -90,7 +90,7 @@ describe('custom-rule handler', () => {
           action: 'create',
           name: 'Rule',
           content: 'Content',
-          category: 'coding'
+          category: 'coding-standards'
         }, state);
         
         expect(ruleManager.createUserRule).toHaveBeenCalledWith(
@@ -232,14 +232,11 @@ describe('custom-rule handler', () => {
     });
 
     describe('default action', () => {
-      it('should return help for unknown action', async () => {
+      it('should return validation error for invalid action', async () => {
         const response = await handleCustomRule({ action: 'unknown' as any }, state);
         
-        expect(response.content[0].text).toContain('Actions');
-        expect(response.content[0].text).toContain('create');
-        expect(response.content[0].text).toContain('list');
-        expect(response.content[0].text).toContain('update');
-        expect(response.content[0].text).toContain('delete');
+        // With Zod validation, invalid actions return validation error
+        expect(response.content[0].text).toContain('Validation error');
       });
     });
   });

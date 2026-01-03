@@ -6,19 +6,19 @@ import { RuleCategory } from '../config/types.js';
 import * as rulesProvider from '../resources/rulesProvider.js';
 import { ServerState, ToolResponse, jsonResponse, textResponse } from './types.js';
 import { logger } from '../utils/logger.js';
-
-interface RulesArgs {
-  action?: 'list' | 'search' | 'get' | 'select';
-  query?: string;
-  ids?: string[];
-  category?: RuleCategory;
-}
+import { RulesInputSchema, validate } from '../validation/schemas.js';
 
 export async function handleRules(
-  args: RulesArgs,
+  args: unknown,
   state: ServerState
 ): Promise<ToolResponse> {
-  const { action = 'list', query, ids, category } = args;
+  // Validate input
+  const validation = validate(RulesInputSchema, args || {});
+  if (!validation.success) {
+    return textResponse(`Validation error: ${validation.error}`);
+  }
+  
+  const { action = 'list', query, ids, category } = validation.data;
   const pt = state.activeProjectType;
 
   logger.debug('Rules action', { action, query, category });

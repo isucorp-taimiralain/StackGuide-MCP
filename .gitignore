@@ -93,6 +93,9 @@ temp/
 # User data (local only)
 .stackguide-local/
 
+# StackGuide analysis cache (contains local paths and project data)
+.stackguide/
+
 # Misc
 .vercel
 .netlify

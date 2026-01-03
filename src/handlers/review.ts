@@ -24,6 +24,7 @@ import {
 import { AnalysisCacheManager } from '../services/analysisCache.js';
 import { ServerState, ToolResponse, jsonResponse, textResponse } from './types.js';
 import { logger } from '../utils/logger.js';
+import { sanitizePath } from '../validation/schemas.js';
 
 interface ReviewArgs {
   file?: string;
@@ -400,7 +401,26 @@ export async function handleReview(
   } else if (file) {
     const fs = await import('fs');
     const path = await import('path');
-    const resolved = path.isAbsolute(file) ? file : path.join(process.cwd(), file);
+    
+    // Security: Sanitize path and prevent path traversal
+    const sanitized = sanitizePath(file);
+    const cwd = process.cwd();
+    const resolved = path.isAbsolute(sanitized) 
+      ? path.resolve(sanitized)
+      : path.resolve(cwd, sanitized);
+    
+    // Ensure the resolved path is within the current working directory
+    if (!resolved.startsWith(cwd + path.sep) && resolved !== cwd) {
+      logger.audit('PATH_TRAVERSAL_BLOCK', { 
+        originalPath: file,
+        sanitizedPath: sanitized,
+        resolvedPath: resolved,
+        cwd,
+        action: 'path_traversal_block'
+      });
+      return textResponse(`Error: Path traversal detected. Access denied to: ${file}`);
+    }
+    
     if (!fs.existsSync(resolved)) {
       return textResponse(`File not found: ${resolved}`);
     }

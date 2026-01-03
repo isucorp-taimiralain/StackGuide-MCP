@@ -210,14 +210,14 @@ describe('handleGenerate', () => {
       expect(data.error).toBeDefined();
     });
 
-    it('should return error for unknown type', async () => {
+    it('should return validation error for unknown type', async () => {
       const result = await handleGenerate(
         { type: 'unknown' as any, name: 'Test' },
         mockState
       );
 
-      const data = JSON.parse(result.content[0].text);
-      expect(data.error).toContain('Unknown template type');
+      // With Zod validation, invalid types return validation error
+      expect(result.content[0].text).toContain('Validation error');
     });
   });
 });

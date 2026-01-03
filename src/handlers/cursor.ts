@@ -6,18 +6,19 @@ import * as cursorDirectory from '../services/cursorDirectory.js';
 import * as ruleManager from '../services/ruleManager.js';
 import { ServerState, ToolResponse, jsonResponse, textResponse } from './types.js';
 import { logger } from '../utils/logger.js';
-
-interface CursorArgs {
-  action?: 'browse' | 'search' | 'popular' | 'import' | 'categories';
-  query?: string;
-  slug?: string;
-}
+import { CursorInputSchema, validate } from '../validation/schemas.js';
 
 export async function handleCursor(
-  args: CursorArgs,
+  args: unknown,
   state: ServerState
 ): Promise<ToolResponse> {
-  const { action = 'categories', query, slug } = args;
+  // Validate input
+  const validation = validate(CursorInputSchema, args || {});
+  if (!validation.success) {
+    return textResponse(`Validation error: ${validation.error}`);
+  }
+  
+  const { action = 'categories', query, slug } = validation.data;
 
   logger.debug('Cursor action', { action, query, slug });
 

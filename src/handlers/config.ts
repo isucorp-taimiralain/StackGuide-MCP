@@ -7,19 +7,19 @@ import * as rulesProvider from '../resources/rulesProvider.js';
 import * as knowledgeProvider from '../resources/knowledgeProvider.js';
 import { ServerState, ToolResponse, jsonResponse, textResponse } from './types.js';
 import { logger } from '../utils/logger.js';
-
-interface ConfigArgs {
-  action?: 'save' | 'load' | 'list' | 'delete' | 'export' | 'import';
-  name?: string;
-  id?: string;
-  json?: string;
-}
+import { ConfigInputSchema, validate } from '../validation/schemas.js';
 
 export async function handleConfig(
-  args: ConfigArgs,
+  args: unknown,
   state: ServerState
 ): Promise<ToolResponse> {
-  const { action = 'list', name, id, json } = args;
+  // Validate input
+  const validation = validate(ConfigInputSchema, args || {});
+  if (!validation.success) {
+    return textResponse(`Validation error: ${validation.error}`);
+  }
+  
+  const { action = 'list', name, id, json } = validation.data;
 
   logger.debug('Config action', { action, name, id });
 

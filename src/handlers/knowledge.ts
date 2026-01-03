@@ -6,18 +6,19 @@ import { KnowledgeCategory } from '../config/types.js';
 import * as knowledgeProvider from '../resources/knowledgeProvider.js';
 import { ServerState, ToolResponse, jsonResponse, textResponse } from './types.js';
 import { logger } from '../utils/logger.js';
-
-interface KnowledgeArgs {
-  action?: 'list' | 'search' | 'get';
-  query?: string;
-  category?: KnowledgeCategory;
-}
+import { KnowledgeInputSchema, validate } from '../validation/schemas.js';
 
 export async function handleKnowledge(
-  args: KnowledgeArgs,
+  args: unknown,
   state: ServerState
 ): Promise<ToolResponse> {
-  const { action = 'list', query, category } = args;
+  // Validate input
+  const validation = validate(KnowledgeInputSchema, args || {});
+  if (!validation.success) {
+    return textResponse(`Validation error: ${validation.error}`);
+  }
+  
+  const { action = 'list', query, category } = validation.data;
   const pt = state.activeProjectType;
 
   logger.debug('Knowledge action', { action, query, category });

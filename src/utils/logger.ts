@@ -64,11 +64,41 @@ class Logger {
   }
 
   /**
-   * Log tool execution with timing
-   */
+ * Log tool execution with timing
+ */
   tool(toolName: string, args: Record<string, unknown>, startTime?: number): void {
     const duration = startTime ? `${Date.now() - startTime}ms` : undefined;
     this.info(`Tool: ${toolName}`, { args, duration });
+  }
+
+  /**
+   * Security audit logging - always logged regardless of level
+   * Use for security-relevant events like SSRF blocks, rate limits, auth failures
+   */
+  audit(event: string, context: Record<string, unknown>): void {
+    const entry: LogEntry = {
+      timestamp: new Date().toISOString(),
+      level: 'warn',
+      message: `[AUDIT] ${event}`,
+      context: {
+        ...context,
+        auditType: 'security',
+        pid: process.pid
+      }
+    };
+    // Security audits always log regardless of level
+    console.error(this.formatEntry(entry));
+  }
+
+  /**
+   * Performance metric logging
+   */
+  metric(name: string, value: number, unit: string, context?: Record<string, unknown>): void {
+    this.debug(`Metric: ${name}`, { 
+      value, 
+      unit, 
+      ...context 
+    });
   }
 }
 

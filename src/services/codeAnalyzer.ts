@@ -1129,7 +1129,52 @@ export function parseUserRuleToPatternRule(
     const regexMatch = patternStr.match(/^\/(.+)\/([gimsu]*)$/);
     if (!regexMatch) return null;
     
-    const pattern = new RegExp(regexMatch[1], regexMatch[2] || 'g');
+    const regexSource = regexMatch[1];
+    const regexFlags = regexMatch[2] || 'g';
+    
+    // Security: Validate regex to prevent ReDoS attacks
+    // Block patterns known to cause catastrophic backtracking
+    const dangerousPatterns = [
+      /\(\.\*\)\+/,           // (.*)+
+      /\(\.\+\)\+/,           // (.+)+
+      /\([^)]*\|[^)]*\)\+/,   // (a|b)+
+      /\(\[.*\]\)\+/,         // ([...])+
+      /\.\*\.\*/,             // .*.*
+      /\(\.\*\)\*/,           // (.*)*
+    ];
+    
+    for (const dangerous of dangerousPatterns) {
+      if (dangerous.test(regexSource)) {
+        logger.audit('REDOS_PATTERN_BLOCK', { 
+          ruleId, 
+          pattern: regexSource,
+          action: 'redos_block'
+        });
+        return null;
+      }
+    }
+    
+    // Limit regex complexity
+    if (regexSource.length > 500) {
+      logger.audit('REGEX_TOO_LONG', { 
+        ruleId, 
+        length: regexSource.length,
+        action: 'regex_length_block'
+      });
+      return null;
+    }
+    
+    // Test regex with timeout protection using a safe test string
+    const testString = 'a'.repeat(100);
+    const startTime = Date.now();
+    const pattern = new RegExp(regexSource, regexFlags);
+    pattern.test(testString);
+    const elapsed = Date.now() - startTime;
+    
+    if (elapsed > 100) { // If test takes more than 100ms, reject
+      logger.warn('Regex pattern too slow', { ruleId, elapsed });
+      return null;
+    }
     
     // Extract message from the rule content
     const messageMatch = content.match(/##?\s*(?:Rule|Message):\s*(.+)/i);
@@ -1151,8 +1196,8 @@ export function parseUserRuleToPatternRule(
       priority: 150, // User rules have higher priority than builtin
       source: 'user'
     };
-  } catch {
-    logger.warn('Failed to parse pattern rule', { ruleId });
+  } catch (error) {
+    logger.warn('Failed to parse pattern rule', { ruleId, error: String(error) });
     return null;
   }
 }

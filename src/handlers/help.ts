@@ -4,10 +4,7 @@
 
 import { SUPPORTED_PROJECTS } from '../config/types.js';
 import { ToolResponse, textResponse } from './types.js';
-
-interface HelpArgs {
-  topic?: 'setup' | 'rules' | 'review' | 'cursor' | 'docs' | 'config' | 'generate' | 'health' | 'all';
-}
+import { HelpInputSchema, validate } from '../validation/schemas.js';
 
 const helpContent: Record<string, string> = {
   setup: `## setup
@@ -102,8 +99,14 @@ Returns:
 - Top recommendations`
 };
 
-export async function handleHelp(args: HelpArgs): Promise<ToolResponse> {
-  const { topic = 'all' } = args;
+export async function handleHelp(args: unknown): Promise<ToolResponse> {
+  // Validate input
+  const validation = validate(HelpInputSchema, args || {});
+  if (!validation.success) {
+    return textResponse(`Validation error: ${validation.error}`);
+  }
+  
+  const { topic = 'all' } = validation.data;
 
   if (topic === 'all') {
     return textResponse(`# StackGuide Help

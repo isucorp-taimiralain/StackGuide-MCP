@@ -1,4 +1,5 @@
 import { URL } from 'url';
+import { logger } from '../utils/logger.js';
 
 // Web documentation structure
 export interface WebDocument {
@@ -15,6 +16,79 @@ export interface WebDocument {
 
 // Web documents cache
 const webDocCache: Map<string, WebDocument> = new Map();
+
+// ============================================================================
+// Rate Limiting
+// ============================================================================
+
+interface RateLimitEntry {
+  count: number;
+  windowStart: number;
+}
+
+const rateLimitStore = new Map<string, RateLimitEntry>();
+
+const RATE_LIMIT_CONFIG = {
+  maxRequests: 30,       // Max requests per window
+  windowMs: 60000,       // 1 minute window
+  blockDurationMs: 300000 // 5 minute block after exceeding
+};
+
+/**
+ * Check if request is rate limited
+ * Uses sliding window algorithm
+ */
+function checkRateLimit(identifier: string = 'global'): { allowed: boolean; retryAfter?: number } {
+  const now = Date.now();
+  const entry = rateLimitStore.get(identifier);
+  
+  if (!entry) {
+    rateLimitStore.set(identifier, { count: 1, windowStart: now });
+    return { allowed: true };
+  }
+  
+  // Check if window has expired
+  if (now - entry.windowStart > RATE_LIMIT_CONFIG.windowMs) {
+    rateLimitStore.set(identifier, { count: 1, windowStart: now });
+    return { allowed: true };
+  }
+  
+  // Check if limit exceeded
+  if (entry.count >= RATE_LIMIT_CONFIG.maxRequests) {
+    const retryAfter = Math.ceil((entry.windowStart + RATE_LIMIT_CONFIG.blockDurationMs - now) / 1000);
+    logger.warn('Rate limit exceeded', { 
+      identifier, 
+      count: entry.count, 
+      retryAfter,
+      action: 'rate_limit_block'
+    });
+    return { allowed: false, retryAfter };
+  }
+  
+  // Increment counter
+  entry.count++;
+  return { allowed: true };
+}
+
+/**
+ * Get rate limit status for monitoring
+ */
+export function getRateLimitStatus(): { 
+  currentRequests: number; 
+  maxRequests: number; 
+  windowMs: number;
+  resetIn: number;
+} {
+  const entry = rateLimitStore.get('global');
+  const now = Date.now();
+  
+  return {
+    currentRequests: entry?.count || 0,
+    maxRequests: RATE_LIMIT_CONFIG.maxRequests,
+    windowMs: RATE_LIMIT_CONFIG.windowMs,
+    resetIn: entry ? Math.max(0, entry.windowStart + RATE_LIMIT_CONFIG.windowMs - now) : 0
+  };
+}
 
 // Extract main content from HTML
 function extractMainContent(html: string): { title: string; content: string } {
@@ -98,6 +172,60 @@ function generateSummary(content: string, maxLength: number = 500): string {
   return summary.trim().substring(0, maxLength) + (summary.length > maxLength ? '...' : '');
 }
 
+// SSRF Protection: Block internal/private network URLs
+const BLOCKED_HOSTNAMES = [
+  'localhost',
+  '127.0.0.1',
+  '0.0.0.0',
+  '::1',
+  '169.254.169.254', // AWS/Cloud metadata
+  'metadata.google.internal', // GCP metadata
+  'metadata.azure.com', // Azure metadata
+];
+
+const PRIVATE_IP_RANGES = [
+  /^10\./,                    // 10.0.0.0/8
+  /^172\.(1[6-9]|2\d|3[0-1])\./,  // 172.16.0.0/12
+  /^192\.168\./,              // 192.168.0.0/16
+  /^127\./,                   // 127.0.0.0/8 loopback
+  /^169\.254\./,              // Link-local
+  /^fc00:/i,                  // IPv6 private
+  /^fe80:/i,                  // IPv6 link-local
+];
+
+function isAllowedUrl(urlString: string): { allowed: boolean; reason?: string } {
+  try {
+    const urlObj = new URL(urlString);
+    const hostname = urlObj.hostname.toLowerCase();
+    
+    // Block non-http(s) protocols
+    if (!['http:', 'https:'].includes(urlObj.protocol)) {
+      return { allowed: false, reason: `Protocol '${urlObj.protocol}' is not allowed` };
+    }
+    
+    // Block known internal hostnames
+    if (BLOCKED_HOSTNAMES.includes(hostname)) {
+      return { allowed: false, reason: `Access to '${hostname}' is blocked for security` };
+    }
+    
+    // Block private IP ranges
+    for (const pattern of PRIVATE_IP_RANGES) {
+      if (pattern.test(hostname)) {
+        return { allowed: false, reason: `Access to private IP '${hostname}' is blocked` };
+      }
+    }
+    
+    // Block URLs with credentials
+    if (urlObj.username || urlObj.password) {
+      return { allowed: false, reason: 'URLs with embedded credentials are not allowed' };
+    }
+    
+    return { allowed: true };
+  } catch {
+    return { allowed: false, reason: 'Invalid URL format' };
+  }
+}
+
 // Fetch and process web documentation
 export async function fetchWebDocumentation(
   url: string,
@@ -107,17 +235,50 @@ export async function fetchWebDocumentation(
     tags?: string[];
   } = {}
 ): Promise<WebDocument> {
+  const startTime = Date.now();
+  
+  // Rate limiting check
+  const rateCheck = checkRateLimit('global');
+  if (!rateCheck.allowed) {
+    logger.audit('RATE_LIMIT_EXCEEDED', { 
+      url, 
+      retryAfter: rateCheck.retryAfter,
+      action: 'fetch_rate_limited'
+    });
+    throw new Error(`Rate limit exceeded. Retry after ${rateCheck.retryAfter} seconds.`);
+  }
+  
   // Check cache
   if (webDocCache.has(url)) {
+    logger.debug('Cache hit', { url, action: 'cache_hit' });
     return webDocCache.get(url)!;
   }
   
-  // Validate URL
+  // Validate URL format
   try {
     new URL(url);
   } catch {
+    logger.warn('Invalid URL format', { url, action: 'invalid_url' });
     throw new Error(`Invalid URL: ${url}`);
   }
+  
+  // SSRF Protection: Validate URL is allowed
+  const urlCheck = isAllowedUrl(url);
+  if (!urlCheck.allowed) {
+    logger.audit('SSRF_BLOCK', { 
+      url, 
+      reason: urlCheck.reason,
+      action: 'ssrf_block'
+    });
+    throw new Error(`URL blocked: ${urlCheck.reason}`);
+  }
+  
+  // Audit log: starting fetch
+  logger.info('Fetching web documentation', { 
+    url, 
+    projectType: options.projectType,
+    action: 'fetch_start'
+  });
   
   // Fetch content
   const response = await fetch(url, {
@@ -128,6 +289,12 @@ export async function fetchWebDocumentation(
   });
   
   if (!response.ok) {
+    logger.warn('Fetch failed', { 
+      url, 
+      status: response.status,
+      statusText: response.statusText,
+      action: 'fetch_failed'
+    });
     throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
   }
   
@@ -163,6 +330,17 @@ export async function fetchWebDocumentation(
   
   // Save to cache
   webDocCache.set(url, doc);
+  
+  // Audit log: fetch complete
+  const duration = Date.now() - startTime;
+  logger.info('Web documentation fetched successfully', { 
+    url, 
+    docId: doc.id,
+    title: doc.title,
+    contentLength: content.length,
+    durationMs: duration,
+    action: 'fetch_complete'
+  });
   
   return doc;
 }

@@ -5,16 +5,19 @@
 import { SUPPORTED_PROJECTS } from '../config/types.js';
 import { ServerState, ToolResponse, jsonResponse, textResponse } from './types.js';
 import { logger } from '../utils/logger.js';
-
-interface ContextArgs {
-  full?: boolean;
-}
+import { ContextInputSchema, validate } from '../validation/schemas.js';
 
 export async function handleContext(
-  args: ContextArgs,
+  args: unknown,
   state: ServerState
 ): Promise<ToolResponse> {
-  const { full = false } = args;
+  // Validate input
+  const validation = validate(ContextInputSchema, args || {});
+  if (!validation.success) {
+    return textResponse(`Validation error: ${validation.error}`);
+  }
+  
+  const { full = false } = validation.data;
 
   logger.debug('Context requested', { full });
 

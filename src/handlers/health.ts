@@ -10,7 +10,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { ServerState, ToolResponse, jsonResponse } from './types.js';
+import { ServerState, ToolResponse, jsonResponse, textResponse } from './types.js';
 import { logger } from '../utils/logger.js';
 import { analyzeCode, AnalysisResult } from '../services/codeAnalyzer.js';
 import { 
@@ -20,6 +20,7 @@ import {
   calculateIssueDeduction,
   getWeightsDocumentation
 } from '../config/healthWeights.js';
+import { HealthInputSchema, validate } from '../validation/schemas.js';
 
 interface HealthArgs {
   projectPath?: string;
@@ -349,11 +350,19 @@ function analyzeTestingReadiness(state: ServerState, weights: HealthWeightsConfi
 }
 
 export async function handleHealth(
-  args: HealthArgs,
+  args: unknown,
   state: ServerState
 ): Promise<ToolResponse> {
-  const { detailed = true, showWeights = false, saveHistory = true } = args;
-  const projectPath = process.cwd();
+  // Validate input
+  const validation = validate(HealthInputSchema, args || {});
+  if (!validation.success) {
+    return textResponse(`Validation error: ${validation.error}`);
+  }
+  
+  const { detailed = true, path: projectPathArg } = validation.data;
+  const showWeights = (args as any)?.showWeights ?? false;
+  const saveHistory = (args as any)?.saveHistory ?? true;
+  const projectPath = projectPathArg || process.cwd();
 
   logger.info('Generating health report', { detailed, showWeights });
 

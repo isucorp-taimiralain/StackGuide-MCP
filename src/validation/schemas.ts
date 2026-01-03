@@ -66,113 +66,122 @@ export const IdentifierSchema = z.string()
 
 /** setup handler input */
 export const SetupInputSchema = z.object({
-  projectType: ProjectTypeSchema,
+  type: ProjectTypeSchema.optional(),
   path: FilePathSchema.optional()
-}).strict();
+}).passthrough();
 
 export type SetupInput = z.infer<typeof SetupInputSchema>;
 
 /** rules handler input */
 export const RulesInputSchema = z.object({
-  projectType: ProjectTypeSchema.optional(),
-  category: z.enum(['security', 'performance', 'best-practices', 'maintainability', 'architecture']).optional(),
-  severity: SeveritySchema.optional()
-}).strict();
+  action: z.enum(['list', 'search', 'get', 'select']).optional().default('list'),
+  query: SafeStringSchema.optional(),
+  ids: z.array(z.string().max(200)).optional(),
+  category: z.enum(['security', 'performance', 'best-practices', 'coding-standards', 'architecture', 'testing']).optional()
+}).passthrough();
 
 export type RulesInput = z.infer<typeof RulesInputSchema>;
 
 /** knowledge handler input */
 export const KnowledgeInputSchema = z.object({
-  projectType: ProjectTypeSchema.optional(),
-  topic: SafeStringSchema.optional()
-}).strict();
+  action: z.enum(['list', 'search', 'get']).optional().default('list'),
+  query: SafeStringSchema.optional(),
+  category: z.enum(['patterns', 'common-issues', 'architecture', 'workflows']).optional()
+}).passthrough();
 
 export type KnowledgeInput = z.infer<typeof KnowledgeInputSchema>;
 
 /** review handler input */
 export const ReviewInputSchema = z.object({
-  path: FilePathSchema.optional(),
-  fix: z.boolean().optional().default(false),
-  severity: SeveritySchema.optional()
-}).strict();
+  file: FilePathSchema.optional(),
+  url: UrlSchema.optional(),
+  project: z.boolean().optional(),
+  focus: z.enum(['all', 'security', 'performance', 'architecture', 'coding-standards']).optional().default('all'),
+  incremental: z.boolean().optional(),
+  maxDepth: z.number().int().min(1).max(20).optional(),
+  maxFiles: z.number().int().min(1).optional(),
+  useCache: z.boolean().optional()
+}).passthrough();
 
 export type ReviewInput = z.infer<typeof ReviewInputSchema>;
 
 /** context handler input */
 export const ContextInputSchema = z.object({
-  path: FilePathSchema.optional(),
-  depth: z.number().int().min(1).max(10).optional().default(3)
-}).strict();
+  full: z.boolean().optional()
+}).passthrough();
 
 export type ContextInput = z.infer<typeof ContextInputSchema>;
 
 /** docs handler input */
 export const DocsInputSchema = z.object({
-  url: UrlSchema.optional(),
-  query: SafeStringSchema.optional(),
-  framework: z.string().max(100).optional()
-}).strict();
+  action: z.enum(['fetch', 'search', 'list', 'get', 'remove', 'suggest']).optional().default('list'),
+  url: z.string().max(2048).optional(), // Can be URL or ID for get/remove
+  urls: z.array(UrlSchema).optional(),
+  query: SafeStringSchema.optional()
+}).passthrough();
 
 export type DocsInput = z.infer<typeof DocsInputSchema>;
 
 /** cursor handler input */
 export const CursorInputSchema = z.object({
-  action: z.enum(['list', 'import', 'search']),
-  slug: SafeStringSchema.optional(),
-  query: SafeStringSchema.optional()
-}).strict();
+  action: z.enum(['browse', 'search', 'popular', 'import', 'categories']).optional().default('categories'),
+  query: SafeStringSchema.optional(),
+  slug: SafeStringSchema.optional()
+}).passthrough();
 
 export type CursorInput = z.infer<typeof CursorInputSchema>;
 
 /** config handler input */
 export const ConfigInputSchema = z.object({
-  action: z.enum(['get', 'set', 'reset', 'list']),
-  key: IdentifierSchema.optional(),
-  value: z.unknown().optional()
-}).strict();
+  action: z.enum(['save', 'load', 'list', 'delete', 'export', 'import']).optional().default('list'),
+  name: SafeStringSchema.optional(),
+  id: z.string().max(200).optional(),
+  json: z.string().max(100000).optional()
+}).passthrough();
 
 export type ConfigInput = z.infer<typeof ConfigInputSchema>;
 
 /** custom-rule handler input */
 export const CustomRuleInputSchema = z.object({
-  action: z.enum(['add', 'remove', 'list', 'enable', 'disable']),
-  rule: z.object({
-    id: IdentifierSchema,
-    name: SafeStringSchema,
-    description: SafeStringSchema,
-    pattern: z.string().max(2000).optional(),
-    message: SafeStringSchema,
-    severity: SeveritySchema,
-    category: z.enum(['security', 'performance', 'best-practices', 'maintainability', 'architecture']),
-    languages: z.array(z.string().max(50)).max(20).optional(),
-    enabled: z.boolean().optional().default(true)
-  }).optional(),
-  ruleId: IdentifierSchema.optional()
-}).strict();
+  action: z.enum(['create', 'update', 'delete', 'list', 'export', 'import']).optional().default('list'),
+  name: SafeStringSchema.optional(),
+  content: z.string().max(50000).optional(),
+  category: z.enum(['security', 'performance', 'best-practices', 'coding-standards', 'architecture']).optional(),
+  id: z.string().max(200).optional(),
+  json: z.string().max(100000).optional()
+}).passthrough();
 
 export type CustomRuleInput = z.infer<typeof CustomRuleInputSchema>;
 
 /** generate handler input */
 export const GenerateInputSchema = z.object({
-  type: z.enum(['component', 'service', 'test', 'hook', 'util', 'model', 'controller']),
-  name: IdentifierSchema,
+  type: z.enum(['component', 'hook', 'service', 'test', 'api', 'model', 'util']),
+  name: z.string().min(1).max(100),
   options: z.object({
-    typescript: z.boolean().optional().default(true),
-    tests: z.boolean().optional().default(false),
-    styled: z.boolean().optional().default(false),
-    exports: z.boolean().optional().default(true)
+    typescript: z.boolean().optional(),
+    withTests: z.boolean().optional(),
+    withStyles: z.boolean().optional(),
+    framework: z.string().max(50).optional(),
+    scanProject: z.boolean().optional()
   }).optional()
-}).strict();
+}).passthrough();
 
 export type GenerateInput = z.infer<typeof GenerateInputSchema>;
 
 /** health handler input */
 export const HealthInputSchema = z.object({
-  path: FilePathSchema.optional(),
-  detailed: z.boolean().optional().default(false)
-}).strict();
+  detailed: z.boolean().optional(),
+  path: FilePathSchema.optional()
+}).passthrough();
 
 export type HealthInput = z.infer<typeof HealthInputSchema>;
+
+/** help handler input */
+export const HelpInputSchema = z.object({
+  topic: z.enum(['setup', 'rules', 'review', 'cursor', 'docs', 'config', 'generate', 'health', 'all']).optional().default('all')
+}).passthrough();
+
+export type HelpInput = z.infer<typeof HelpInputSchema>;
 
 // ============================================================================
 // Tool Argument Schemas
@@ -311,7 +320,8 @@ export const HANDLER_SCHEMAS: Record<string, z.ZodSchema> = {
   'config': ConfigInputSchema,
   'custom-rule': CustomRuleInputSchema,
   'generate': GenerateInputSchema,
-  'health': HealthInputSchema
+  'health': HealthInputSchema,
+  'help': HelpInputSchema
 };
 
 /**

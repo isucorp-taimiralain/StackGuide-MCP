@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * StackGuide MCP Server v3.4.0
+ * StackGuide MCP Server v3.8.0
  * 
  * A Model Context Protocol server for dynamic language and framework context loading.
  * Compatible with Cursor and GitHub Copilot.
@@ -70,7 +70,7 @@ const serverState: ServerState = {
 const server = new Server(
   {
     name: 'stackguide-mcp',
-    version: '3.4.0',
+    version: '3.8.0',
   },
   {
     capabilities: {
@@ -84,19 +84,19 @@ const server = new Server(
 // ==================== TOOL ROUTER ====================
 
 const toolRouter = createToolRouter()
-  .register('setup', handleSetup as any)
-  .register('context', handleContext as any)
-  .register('rules', handleRules as any)
-  .register('knowledge', handleKnowledge as any)
-  .register('review', handleReview as any)
-  .register('cursor', handleCursor as any)
-  .register('docs', handleDocs as any)
-  .register('config', handleConfig as any)
-  .register('custom_rule', handleCustomRule as any)
-  .register('help', (args) => handleHelp(args as any))
-  .register('generate', handleGenerate as any)
-  .register('health', handleHealth as any)
-  .register('analyze', handleAnalyze as any);
+  .register('setup', handleSetup)
+  .register('context', handleContext)
+  .register('rules', handleRules)
+  .register('knowledge', handleKnowledge)
+  .register('review', handleReview)
+  .register('cursor', handleCursor)
+  .register('docs', handleDocs)
+  .register('config', handleConfig)
+  .register('custom_rule', handleCustomRule)
+  .register('help', handleHelp)
+  .register('generate', handleGenerate)
+  .register('health', handleHealth)
+  .register('analyze', handleAnalyze);
 
 // ==================== TOOLS ====================
 

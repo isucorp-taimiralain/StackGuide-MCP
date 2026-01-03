@@ -6,21 +6,19 @@ import { RuleCategory } from '../config/types.js';
 import * as ruleManager from '../services/ruleManager.js';
 import { ServerState, ToolResponse, jsonResponse, textResponse } from './types.js';
 import { logger } from '../utils/logger.js';
-
-interface CustomRuleArgs {
-  action?: 'create' | 'update' | 'delete' | 'list' | 'export' | 'import';
-  name?: string;
-  content?: string;
-  category?: RuleCategory;
-  id?: string;
-  json?: string;
-}
+import { CustomRuleInputSchema, validate } from '../validation/schemas.js';
 
 export async function handleCustomRule(
-  args: CustomRuleArgs,
+  args: unknown,
   state: ServerState
 ): Promise<ToolResponse> {
-  const { action = 'list', name, content, category, id, json } = args;
+  // Validate input
+  const validation = validate(CustomRuleInputSchema, args || {});
+  if (!validation.success) {
+    return textResponse(`Validation error: ${validation.error}`);
+  }
+  
+  const { action = 'list', name, content, category, id, json } = validation.data;
   const pt = state.activeProjectType || 'react-typescript';
 
   logger.debug('Custom rule action', { action, name, id });

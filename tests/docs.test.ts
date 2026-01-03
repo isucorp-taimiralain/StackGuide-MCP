@@ -190,7 +190,7 @@ describe('docs handler', () => {
         
         const response = await handleDocs({
           action: 'get',
-          url: 'nonexistent'
+          url: 'https://nonexistent.example.com/doc'
         }, state);
         
         expect(response.content[0].text).toContain('not found');
@@ -208,13 +208,13 @@ describe('docs handler', () => {
       it('should remove document from cache', async () => {
         const response = await handleDocs({
           action: 'remove',
-          url: 'doc-1'
+          url: 'https://example.com/doc-1'
         }, state);
         const data = JSON.parse(response.content[0].text);
         
         expect(data.success).toBe(true);
-        expect(data.removed).toBe('doc-1');
-        expect(webDocs.removeFromCache).toHaveBeenCalledWith('doc-1');
+        expect(data.removed).toBe('https://example.com/doc-1');
+        expect(webDocs.removeFromCache).toHaveBeenCalledWith('https://example.com/doc-1');
       });
     });
 
@@ -246,13 +246,11 @@ describe('docs handler', () => {
     });
 
     describe('default action', () => {
-      it('should return help for unknown action', async () => {
+      it('should return validation error for invalid action', async () => {
         const response = await handleDocs({ action: 'unknown' as any }, state);
         
-        expect(response.content[0].text).toContain('Actions');
-        expect(response.content[0].text).toContain('fetch');
-        expect(response.content[0].text).toContain('list');
-        expect(response.content[0].text).toContain('search');
+        // With Zod validation, invalid actions return validation error
+        expect(response.content[0].text).toContain('Validation error');
       });
     });
   });

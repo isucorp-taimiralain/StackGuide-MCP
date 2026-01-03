@@ -165,12 +165,11 @@ describe('cursor handler', () => {
     });
 
     describe('default action', () => {
-      it('should return help for unknown action', async () => {
+      it('should return validation error for invalid action', async () => {
         const response = await handleCursor({ action: 'unknown' as any }, state);
         
-        expect(response.content[0].text).toContain('Actions');
-        expect(response.content[0].text).toContain('categories');
-        expect(response.content[0].text).toContain('popular');
+        // With Zod validation, invalid actions return validation error
+        expect(response.content[0].text).toContain('Validation error');
       });
     });
   });
