@@ -67,6 +67,36 @@
         "issues": [
           {
             "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'createConfiguration' appears to have no internal usage",
+            "line": 52,
+            "code": "createConfiguration",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'getAllConfigurations' appears to have no internal usage",
+            "line": 79,
+            "code": "getAllConfigurations",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'getConfigurationById' appears to have no internal usage",
+            "line": 85,
+            "code": "getConfigurationById",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
@@ -81,6 +111,16 @@
           },
           {
             "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'getActiveConfiguration' appears to have no internal usage",
+            "line": 91,
+            "code": "getActiveConfiguration",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
@@ -91,6 +131,16 @@
               "before": "==",
               "after": "==="
             },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'setActiveConfiguration' appears to have no internal usage",
+            "line": 98,
+            "code": "setActiveConfiguration",
+            "suggestion": "Verify this export is used by other modules or remove it",
             "source": "builtin"
           },
           {
@@ -137,6 +187,16 @@
           },
           {
             "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'deleteConfiguration' appears to have no internal usage",
+            "line": 132,
+            "code": "deleteConfiguration",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
@@ -179,6 +239,16 @@
           },
           {
             "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'addCustomRule' appears to have no internal usage",
+            "line": 149,
+            "code": "addCustomRule",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
@@ -189,6 +259,16 @@
               "before": "==",
               "after": "==="
             },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'updateSelectedRules' appears to have no internal usage",
+            "line": 168,
+            "code": "updateSelectedRules",
+            "suggestion": "Verify this export is used by other modules or remove it",
             "source": "builtin"
           },
           {
@@ -207,6 +287,16 @@
           },
           {
             "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'updateSelectedKnowledge' appears to have no internal usage",
+            "line": 174,
+            "code": "updateSelectedKnowledge",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
@@ -217,6 +307,36 @@
               "before": "==",
               "after": "==="
             },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'exportConfiguration' appears to have no internal usage",
+            "line": 180,
+            "code": "exportConfiguration",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'importConfiguration' appears to have no internal usage",
+            "line": 187,
+            "code": "importConfiguration",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'getConfigPath' appears to have no internal usage",
+            "line": 215,
+            "code": "getConfigPath",
+            "suggestion": "Verify this export is used by other modules or remove it",
             "source": "builtin"
           },
           {
@@ -280,10 +400,10 @@
             "source": "builtin"
           }
         ],
-        "score": 42,
+        "score": 0,
         "summary": {
           "errors": 0,
-          "warnings": 11,
+          "warnings": 23,
           "info": 0,
           "suggestions": 6
         },
@@ -295,12 +415,12 @@
           }
         ],
         "rulesApplied": {
-          "builtin": 17,
+          "builtin": 29,
           "user": 0,
           "project": 0
         }
       },
-      "timestamp": 1767396070402,
+      "timestamp": 1767400804204,
       "version": "1.0.0"
     },
     "src/config/types.ts": {
@@ -366,21 +486,32 @@
       "result": {
         "file": "src/handlers/config.ts",
         "language": "typescript",
-        "issues": [],
-        "score": 100,
+        "issues": [
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'handleConfig' appears to have no internal usage",
+            "line": 18,
+            "code": "handleConfig",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          }
+        ],
+        "score": 95,
         "summary": {
           "errors": 0,
-          "warnings": 0,
+          "warnings": 1,
           "info": 0,
           "suggestions": 0
         },
         "rulesApplied": {
-          "builtin": 0,
+          "builtin": 1,
           "user": 0,
           "project": 0
         }
       },
-      "timestamp": 1767396070404,
+      "timestamp": 1767400804260,
       "version": "1.0.0"
     },
     "src/handlers/context.ts": {
@@ -1947,7 +2078,7 @@
       "version": "1.0.0"
     },
     "src/index.ts": {
-      "hash": "2de98541d802f743",
+      "hash": "57e9113a55615ef0",
       "result": {
         "file": "src/index.ts",
         "language": "typescript",
@@ -1957,7 +2088,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 57,
+            "line": 59,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -1971,7 +2102,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 57,
+            "line": 59,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -1985,7 +2116,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 66,
+            "line": 68,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -1999,7 +2130,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 66,
+            "line": 68,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -2013,7 +2144,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 82,
+            "line": 84,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -2027,7 +2158,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 82,
+            "line": 84,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -2041,7 +2172,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 135,
+            "line": 101,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -2055,7 +2186,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 135,
+            "line": 101,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -2069,7 +2200,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 265,
+            "line": 112,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -2083,7 +2214,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 280,
+            "line": 112,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -2097,7 +2228,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 301,
+            "line": 130,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -2111,7 +2242,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 340,
+            "line": 130,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -2125,7 +2256,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 340,
+            "line": 141,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -2139,35 +2270,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 415,
-            "code": "==",
-            "quickFix": {
-              "description": "Replace == with ===",
-              "before": "==",
-              "after": "==="
-            },
-            "source": "builtin"
-          },
-          {
-            "severity": "warning",
-            "rule": "STD005",
-            "category": "coding-standards",
-            "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 561,
-            "code": "==",
-            "quickFix": {
-              "description": "Replace == with ===",
-              "before": "==",
-              "after": "==="
-            },
-            "source": "builtin"
-          },
-          {
-            "severity": "warning",
-            "rule": "STD005",
-            "category": "coding-standards",
-            "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 561,
+            "line": 141,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -2181,29 +2284,9 @@
             "rule": "STD007",
             "category": "coding-standards",
             "message": "Function appears too long (>500 chars)",
-            "line": 563,
+            "line": 143,
             "code": "function main() {\n  logger.info('Starting StackGuide MCP Server');\n\n  // Load active configuration i",
             "suggestion": "Consider breaking into smaller functions",
-            "source": "builtin"
-          },
-          {
-            "severity": "info",
-            "rule": "AST005",
-            "category": "coding-standards",
-            "message": "Conditional has 7 logical operators (max: 3)",
-            "line": 280,
-            "code": "if (uri === 'context://active') {\n      if (!serverState.activeProjectType) {\n  ",
-            "suggestion": "Consider extracting conditions into named variables for clarity",
-            "source": "builtin"
-          },
-          {
-            "severity": "info",
-            "rule": "AST010",
-            "category": "coding-standards",
-            "message": "Magic number(s) detected: 15000",
-            "line": 505,
-            "code": "codeToReview.length > 15000",
-            "suggestion": "Extract to a named constant for clarity",
             "source": "builtin"
           },
           {
@@ -2211,17 +2294,17 @@
             "rule": "AST006",
             "category": "best-practices",
             "message": "Function 'main' is missing explicit return type",
-            "line": 563,
+            "line": 143,
             "code": "main",
             "suggestion": "Add return type annotation for better type safety",
             "source": "builtin"
           }
         ],
-        "score": 13,
+        "score": 25,
         "summary": {
           "errors": 0,
-          "warnings": 17,
-          "info": 2,
+          "warnings": 15,
+          "info": 0,
           "suggestions": 1
         },
         "quickFixes": [
@@ -2232,12 +2315,12 @@
           }
         ],
         "rulesApplied": {
-          "builtin": 20,
+          "builtin": 16,
           "user": 0,
           "project": 0
         }
       },
-      "timestamp": 1767398625497,
+      "timestamp": 1767400804426,
       "version": "1.0.0"
     },
     "src/resources/knowledgeProvider.ts": {
@@ -10056,7 +10139,7 @@
           "project": 0
         }
       },
-      "timestamp": 1767398625644,
+      "timestamp": 1767400804530,
       "version": "1.0.0"
     },
     "src/services/intelligence/projectIntelligence.ts": {
@@ -10624,7 +10707,7 @@
           "project": 0
         }
       },
-      "timestamp": 1767398625743,
+      "timestamp": 1767400804575,
       "version": "1.0.0"
     },
     "src/services/intelligence/templates.ts": {
@@ -10943,6 +11026,2102 @@
         }
       },
       "timestamp": 1767398625920,
+      "version": "1.0.0"
+    },
+    "src/services/intelligence/projectFs.ts": {
+      "hash": "adf50e41ceb09050",
+      "result": {
+        "file": "src/services/intelligence/projectFs.ts",
+        "language": "typescript",
+        "issues": [
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'createLocalFs' appears to have no internal usage",
+            "line": 15,
+            "code": "createLocalFs",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          }
+        ],
+        "score": 95,
+        "summary": {
+          "errors": 0,
+          "warnings": 1,
+          "info": 0,
+          "suggestions": 0
+        },
+        "rulesApplied": {
+          "builtin": 1,
+          "user": 0,
+          "project": 0
+        }
+      },
+      "timestamp": 1767399950630,
+      "version": "1.0.0"
+    },
+    "src/handlers/prompts.ts": {
+      "hash": "cf38a9ef41f96b75",
+      "result": {
+        "file": "src/handlers/prompts.ts",
+        "language": "typescript",
+        "issues": [
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 10,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 12,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 36,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 38,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'listAllPrompts' appears to have no internal usage",
+            "line": 40,
+            "code": "listAllPrompts",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 73,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 75,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'handleWelcomePrompt' appears to have no internal usage",
+            "line": 77,
+            "code": "handleWelcomePrompt",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'handleConfigureProjectPrompt' appears to have no internal usage",
+            "line": 109,
+            "code": "handleConfigureProjectPrompt",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 111,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'handleCodeReviewPrompt' appears to have no internal usage",
+            "line": 151,
+            "code": "handleCodeReviewPrompt",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'handleApplyPatternsPrompt' appears to have no internal usage",
+            "line": 217,
+            "code": "handleApplyPatternsPrompt",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 253,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 255,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'handlePrompt' appears to have no internal usage",
+            "line": 257,
+            "code": "handlePrompt",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST010",
+            "category": "coding-standards",
+            "message": "Magic number(s) detected: 15000",
+            "line": 204,
+            "code": "codeToReview.length > 15000",
+            "suggestion": "Extract to a named constant for clarity",
+            "source": "builtin"
+          }
+        ],
+        "score": 24,
+        "summary": {
+          "errors": 0,
+          "warnings": 15,
+          "info": 1,
+          "suggestions": 0
+        },
+        "quickFixes": [
+          {
+            "description": "Replace == with ===",
+            "before": "==",
+            "after": "==="
+          }
+        ],
+        "rulesApplied": {
+          "builtin": 16,
+          "user": 0,
+          "project": 0
+        }
+      },
+      "timestamp": 1767400804339,
+      "version": "1.0.0"
+    },
+    "src/handlers/resources.ts": {
+      "hash": "c50cfd4250ff5e83",
+      "result": {
+        "file": "src/handlers/resources.ts",
+        "language": "typescript",
+        "issues": [
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 13,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 15,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 32,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 34,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'readRulesResource' appears to have no internal usage",
+            "line": 36,
+            "code": "readRulesResource",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'readUserRulesResource' appears to have no internal usage",
+            "line": 51,
+            "code": "readUserRulesResource",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'readKnowledgeResource' appears to have no internal usage",
+            "line": 68,
+            "code": "readKnowledgeResource",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'readWebDocResource' appears to have no internal usage",
+            "line": 83,
+            "code": "readWebDocResource",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'readTemplatesResource' appears to have no internal usage",
+            "line": 102,
+            "code": "readTemplatesResource",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'readActiveContextResource' appears to have no internal usage",
+            "line": 119,
+            "code": "readActiveContextResource",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 140,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 168,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 170,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'listAllResources' appears to have no internal usage",
+            "line": 172,
+            "code": "listAllResources",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 237,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 239,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'handleResourceRead' appears to have no internal usage",
+            "line": 241,
+            "code": "handleResourceRead",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 258,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 262,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          }
+        ],
+        "score": 5,
+        "summary": {
+          "errors": 0,
+          "warnings": 19,
+          "info": 0,
+          "suggestions": 0
+        },
+        "quickFixes": [
+          {
+            "description": "Replace == with ===",
+            "before": "==",
+            "after": "==="
+          }
+        ],
+        "rulesApplied": {
+          "builtin": 19,
+          "user": 0,
+          "project": 0
+        }
+      },
+      "timestamp": 1767400804381,
+      "version": "1.0.0"
+    },
+    "src/router/index.ts": {
+      "hash": "aa4acc9d552c49bd",
+      "result": {
+        "file": "src/router/index.ts",
+        "language": "typescript",
+        "issues": [
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 11,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 13,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 45,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 47,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 103,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 105,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 131,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 132,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 162,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 164,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 203,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 205,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'createToolRouter' appears to have no internal usage",
+            "line": 207,
+            "code": "createToolRouter",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'createResourceRouter' appears to have no internal usage",
+            "line": 211,
+            "code": "createResourceRouter",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'createPromptRouter' appears to have no internal usage",
+            "line": 215,
+            "code": "createPromptRouter",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 219,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 221,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          }
+        ],
+        "score": 15,
+        "summary": {
+          "errors": 0,
+          "warnings": 17,
+          "info": 0,
+          "suggestions": 0
+        },
+        "quickFixes": [
+          {
+            "description": "Replace == with ===",
+            "before": "==",
+            "after": "==="
+          }
+        ],
+        "rulesApplied": {
+          "builtin": 17,
+          "user": 0,
+          "project": 0
+        }
+      },
+      "timestamp": 1767400804460,
+      "version": "1.0.0"
+    },
+    "src/services/httpClient.ts": {
+      "hash": "bcd66e1c24ccf119",
+      "result": {
+        "file": "src/services/httpClient.ts",
+        "language": "typescript",
+        "issues": [
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 9,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 11,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 49,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 51,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 66,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 68,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 149,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 179,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 181,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 211,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 239,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 283,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 297,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 330,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 421,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 423,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'getHttpClient' appears to have no internal usage",
+            "line": 427,
+            "code": "getHttpClient",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'resetHttpClient' appears to have no internal usage",
+            "line": 434,
+            "code": "resetHttpClient",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST010",
+            "category": "coding-standards",
+            "message": "Magic number(s) detected: 30000",
+            "line": 53,
+            "code": "DEFAULT_TIMEOUT = 30000",
+            "suggestion": "Extract to a named constant for clarity",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST010",
+            "category": "coding-standards",
+            "message": "Magic number(s) detected: 3600000",
+            "line": 56,
+            "code": "DEFAULT_CACHE_TTL = 3600000",
+            "suggestion": "Extract to a named constant for clarity",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST010",
+            "category": "coding-standards",
+            "message": "Magic number(s) detected: 86400000",
+            "line": 57,
+            "code": "MAX_CACHE_TTL = 86400000",
+            "suggestion": "Extract to a named constant for clarity",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST002",
+            "category": "coding-standards",
+            "message": "Function 'acquire' has an empty body",
+            "line": 121,
+            "code": "async acquire<T>(host: string, execute: () => Prom",
+            "suggestion": "Add implementation or a comment explaining why it is empty",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST010",
+            "category": "coding-standards",
+            "message": "Magic number(s) detected: 200, 300",
+            "line": 239,
+            "code": "method === 'GET' && response.status >= 200 && resp",
+            "suggestion": "Extract to a named constant for clarity",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST010",
+            "category": "coding-standards",
+            "message": "Magic number(s) detected: 200, 300",
+            "line": 239,
+            "code": "method === 'GET' && response.status >= 200 && resp",
+            "suggestion": "Extract to a named constant for clarity",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST010",
+            "category": "coding-standards",
+            "message": "Magic number(s) detected: 200",
+            "line": 239,
+            "code": "method === 'GET' && response.status >= 200",
+            "suggestion": "Extract to a named constant for clarity",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST010",
+            "category": "coding-standards",
+            "message": "Magic number(s) detected: 200",
+            "line": 239,
+            "code": "response.status >= 200",
+            "suggestion": "Extract to a named constant for clarity",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST010",
+            "category": "coding-standards",
+            "message": "Magic number(s) detected: 300",
+            "line": 239,
+            "code": "response.status < 300",
+            "suggestion": "Extract to a named constant for clarity",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST010",
+            "category": "coding-standards",
+            "message": "Magic number(s) detected: 429",
+            "line": 297,
+            "code": "response.status === 429",
+            "suggestion": "Extract to a named constant for clarity",
+            "source": "builtin"
+          }
+        ],
+        "score": 0,
+        "summary": {
+          "errors": 0,
+          "warnings": 18,
+          "info": 10,
+          "suggestions": 0
+        },
+        "quickFixes": [
+          {
+            "description": "Replace == with ===",
+            "before": "==",
+            "after": "==="
+          }
+        ],
+        "rulesApplied": {
+          "builtin": 28,
+          "user": 0,
+          "project": 0
+        }
+      },
+      "timestamp": 1767400804525,
+      "version": "1.0.0"
+    },
+    "src/services/projectFs.ts": {
+      "hash": "daaad196da0e384a",
+      "result": {
+        "file": "src/services/projectFs.ts",
+        "language": "typescript",
+        "issues": [
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 10,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 12,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 64,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 66,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'RealProjectFs' appears to have no internal usage",
+            "line": 88,
+            "code": "RealProjectFs",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 171,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 207,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 226,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 228,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'MockProjectFs' appears to have no internal usage",
+            "line": 235,
+            "code": "MockProjectFs",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST009",
+            "category": "architecture",
+            "message": "Class 'MockProjectFs' has 17 members (max: 15)",
+            "line": 235,
+            "code": "MockProjectFs",
+            "suggestion": "Consider splitting into smaller, focused classes (SRP)",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 267,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 300,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 301,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 301,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 321,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 344,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 345,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 351,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 379,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 381,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'createProjectFs' appears to have no internal usage",
+            "line": 385,
+            "code": "createProjectFs",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'getProjectFs' appears to have no internal usage",
+            "line": 389,
+            "code": "getProjectFs",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'setProjectFs' appears to have no internal usage",
+            "line": 396,
+            "code": "setProjectFs",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'resetProjectFs' appears to have no internal usage",
+            "line": 400,
+            "code": "resetProjectFs",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          }
+        ],
+        "score": 0,
+        "summary": {
+          "errors": 0,
+          "warnings": 25,
+          "info": 0,
+          "suggestions": 0
+        },
+        "quickFixes": [
+          {
+            "description": "Replace == with ===",
+            "before": "==",
+            "after": "==="
+          }
+        ],
+        "rulesApplied": {
+          "builtin": 25,
+          "user": 0,
+          "project": 0
+        }
+      },
+      "timestamp": 1767400804633,
+      "version": "1.0.0"
+    },
+    "src/storage/index.ts": {
+      "hash": "f92b71ce4d253e2a",
+      "result": {
+        "file": "src/storage/index.ts",
+        "language": "typescript",
+        "issues": [],
+        "score": 100,
+        "summary": {
+          "errors": 0,
+          "warnings": 0,
+          "info": 0,
+          "suggestions": 0
+        },
+        "rulesApplied": {
+          "builtin": 0,
+          "user": 0,
+          "project": 0
+        }
+      },
+      "timestamp": 1767400804635,
+      "version": "1.0.0"
+    },
+    "src/storage/sqlite.ts": {
+      "hash": "c82cfc2d5f45e221",
+      "result": {
+        "file": "src/storage/sqlite.ts",
+        "language": "typescript",
+        "issues": [
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 24,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 26,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 40,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 42,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD006",
+            "category": "coding-standards",
+            "message": "Use strict inequality (!==) instead of loose inequality (!=)",
+            "line": 149,
+            "code": "!=",
+            "quickFix": {
+              "description": "Replace != with !==",
+              "before": "!=",
+              "after": "!=="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 185,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 187,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 275,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST007",
+            "category": "best-practices",
+            "message": "Explicit \"any\" type detected",
+            "line": 377,
+            "code": "row: any",
+            "suggestion": "Use a more specific type or \"unknown\" for truly unknown types",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 384,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 393,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 395,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 473,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 520,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 522,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 628,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 630,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'getStorage' appears to have no internal usage",
+            "line": 634,
+            "code": "getStorage",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'initStorage' appears to have no internal usage",
+            "line": 641,
+            "code": "initStorage",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'closeStorage' appears to have no internal usage",
+            "line": 647,
+            "code": "closeStorage",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST002",
+            "category": "coding-standards",
+            "message": "Function 'anonymous' has an empty body",
+            "line": 88,
+            "code": "() => {\n      // Deactivate all\n      this.db.prep",
+            "suggestion": "Add implementation or a comment explaining why it is empty",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST002",
+            "category": "coding-standards",
+            "message": "Function 'close' has an empty body",
+            "line": 180,
+            "code": "async close(): Promise<void> {\n    // Handled by S",
+            "suggestion": "Add implementation or a comment explaining why it is empty",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST002",
+            "category": "coding-standards",
+            "message": "Function 'close' has an empty body",
+            "line": 373,
+            "code": "async close(): Promise<void> {\n    // Handled by S",
+            "suggestion": "Add implementation or a comment explaining why it is empty",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST002",
+            "category": "coding-standards",
+            "message": "Function 'close' has an empty body",
+            "line": 515,
+            "code": "async close(): Promise<void> {\n    // Handled by S",
+            "suggestion": "Add implementation or a comment explaining why it is empty",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST010",
+            "category": "coding-standards",
+            "message": "Magic number(s) detected: 604800",
+            "line": 534,
+            "code": "this.options = {\n      baseDir,\n      dbName: opti",
+            "suggestion": "Extract to a named constant for clarity",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST010",
+            "category": "coding-standards",
+            "message": "Magic number(s) detected: 604800",
+            "line": 538,
+            "code": "options.defaultCacheTTL ?? 604800",
+            "suggestion": "Extract to a named constant for clarity",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST002",
+            "category": "coding-standards",
+            "message": "Function 'migrate' has an empty body",
+            "line": 587,
+            "code": "async migrate(): Promise<void> {\n    // Schema ver",
+            "suggestion": "Add implementation or a comment explaining why it is empty",
+            "source": "builtin"
+          },
+          {
+            "severity": "suggestion",
+            "rule": "ARCH003",
+            "category": "architecture",
+            "message": "Direct instantiation makes testing harder",
+            "line": 37,
+            "code": "new Date()",
+            "suggestion": "Inject dependencies for better testability",
+            "source": "builtin"
+          },
+          {
+            "severity": "suggestion",
+            "rule": "ARCH003",
+            "category": "architecture",
+            "message": "Direct instantiation makes testing harder",
+            "line": 428,
+            "code": "new Date()",
+            "suggestion": "Inject dependencies for better testability",
+            "source": "builtin"
+          }
+        ],
+        "score": 0,
+        "summary": {
+          "errors": 0,
+          "warnings": 20,
+          "info": 7,
+          "suggestions": 2
+        },
+        "quickFixes": [
+          {
+            "description": "Replace == with ===",
+            "before": "==",
+            "after": "==="
+          },
+          {
+            "description": "Replace != with !==",
+            "before": "!=",
+            "after": "!=="
+          }
+        ],
+        "rulesApplied": {
+          "builtin": 29,
+          "user": 0,
+          "project": 0
+        }
+      },
+      "timestamp": 1767400804800,
+      "version": "1.0.0"
+    },
+    "src/storage/types.ts": {
+      "hash": "1502103ce7def915",
+      "result": {
+        "file": "src/storage/types.ts",
+        "language": "typescript",
+        "issues": [
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 9,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 11,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 54,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 56,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 108,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 110,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 160,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 162,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 187,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 189,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST010",
+            "category": "coding-standards",
+            "message": "Magic number(s) detected: 604800",
+            "line": 208,
+            "code": "DEFAULT_STORAGE_OPTIONS: Required<StorageOptions> ",
+            "suggestion": "Extract to a named constant for clarity",
+            "source": "builtin"
+          }
+        ],
+        "score": 49,
+        "summary": {
+          "errors": 0,
+          "warnings": 10,
+          "info": 1,
+          "suggestions": 0
+        },
+        "quickFixes": [
+          {
+            "description": "Replace == with ===",
+            "before": "==",
+            "after": "==="
+          }
+        ],
+        "rulesApplied": {
+          "builtin": 11,
+          "user": 0,
+          "project": 0
+        }
+      },
+      "timestamp": 1767400804833,
       "version": "1.0.0"
     }
   }
