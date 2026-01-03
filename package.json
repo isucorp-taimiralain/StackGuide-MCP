@@ -1,6 +1,6 @@
 {
   "name": "@stackguide/mcp-server",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "description": "MCP Server for dynamic language and framework context loading - Compatible with Cursor and GitHub Copilot",
   "main": "dist/index.js",
   "bin": {
@@ -41,7 +41,7 @@
     "tree-sitter-rust": "^0.24.0",
     "tree-sitter-typescript": "^0.23.2",
     "ts-morph": "^27.0.2",
-    "zod": "^3.23.8"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

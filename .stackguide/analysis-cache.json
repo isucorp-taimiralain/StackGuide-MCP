@@ -11552,7 +11552,7 @@
       "version": "1.0.0"
     },
     "src/router/index.ts": {
-      "hash": "aa4acc9d552c49bd",
+      "hash": "3c71a195fe7f8787",
       "result": {
         "file": "src/router/index.ts",
         "language": "typescript",
@@ -11562,7 +11562,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 11,
+            "line": 12,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -11576,7 +11576,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 13,
+            "line": 14,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -11590,7 +11590,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 45,
+            "line": 51,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -11604,7 +11604,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 47,
+            "line": 53,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -11618,7 +11618,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 103,
+            "line": 134,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -11632,35 +11632,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 105,
-            "code": "==",
-            "quickFix": {
-              "description": "Replace == with ===",
-              "before": "==",
-              "after": "==="
-            },
-            "source": "builtin"
-          },
-          {
-            "severity": "warning",
-            "rule": "STD005",
-            "category": "coding-standards",
-            "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 131,
-            "code": "==",
-            "quickFix": {
-              "description": "Replace == with ===",
-              "before": "==",
-              "after": "==="
-            },
-            "source": "builtin"
-          },
-          {
-            "severity": "warning",
-            "rule": "STD005",
-            "category": "coding-standards",
-            "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 132,
+            "line": 136,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -11688,7 +11660,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 164,
+            "line": 163,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -11702,7 +11674,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 203,
+            "line": 193,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -11716,7 +11688,35 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 205,
+            "line": 195,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 234,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 236,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -11730,7 +11730,7 @@
             "rule": "AST001",
             "category": "coding-standards",
             "message": "Export 'createToolRouter' appears to have no internal usage",
-            "line": 207,
+            "line": 238,
             "code": "createToolRouter",
             "suggestion": "Verify this export is used by other modules or remove it",
             "source": "builtin"
@@ -11740,7 +11740,7 @@
             "rule": "AST001",
             "category": "coding-standards",
             "message": "Export 'createResourceRouter' appears to have no internal usage",
-            "line": 211,
+            "line": 242,
             "code": "createResourceRouter",
             "suggestion": "Verify this export is used by other modules or remove it",
             "source": "builtin"
@@ -11750,7 +11750,7 @@
             "rule": "AST001",
             "category": "coding-standards",
             "message": "Export 'createPromptRouter' appears to have no internal usage",
-            "line": 215,
+            "line": 246,
             "code": "createPromptRouter",
             "suggestion": "Verify this export is used by other modules or remove it",
             "source": "builtin"
@@ -11760,7 +11760,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 219,
+            "line": 250,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -11774,7 +11774,7 @@
             "rule": "STD005",
             "category": "coding-standards",
             "message": "Use strict equality (===) instead of loose equality (==)",
-            "line": 221,
+            "line": 252,
             "code": "==",
             "quickFix": {
               "description": "Replace == with ===",
@@ -11804,7 +11804,7 @@
           "project": 0
         }
       },
-      "timestamp": 1767400804460,
+      "timestamp": 1767403748996,
       "version": "1.0.0"
     },
     "src/services/httpClient.ts": {
@@ -15106,6 +15106,409 @@
         }
       },
       "timestamp": 1767403280869,
+      "version": "1.0.0"
+    },
+    "src/validation/index.ts": {
+      "hash": "601ddcf6adcfad15",
+      "result": {
+        "file": "src/validation/index.ts",
+        "language": "typescript",
+        "issues": [],
+        "score": 100,
+        "summary": {
+          "errors": 0,
+          "warnings": 0,
+          "info": 0,
+          "suggestions": 0
+        },
+        "rulesApplied": {
+          "builtin": 0,
+          "user": 0,
+          "project": 0
+        }
+      },
+      "timestamp": 1767403749040,
+      "version": "1.0.0"
+    },
+    "src/validation/schemas.ts": {
+      "hash": "4e2d316d8a676c67",
+      "result": {
+        "file": "src/validation/schemas.ts",
+        "language": "typescript",
+        "issues": [
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 9,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 11,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 63,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 65,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 177,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 179,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 200,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 202,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'validateOrThrow' appears to have no internal usage",
+            "line": 237,
+            "code": "validateOrThrow",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'withValidation' appears to have no internal usage",
+            "line": 255,
+            "code": "withValidation",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 265,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 267,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'sanitizeForDisplay' appears to have no internal usage",
+            "line": 272,
+            "code": "sanitizeForDisplay",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'sanitizePath' appears to have no internal usage",
+            "line": 282,
+            "code": "sanitizePath",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'sanitizeIdentifier' appears to have no internal usage",
+            "line": 292,
+            "code": "sanitizeIdentifier",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 299,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "STD005",
+            "category": "coding-standards",
+            "message": "Use strict equality (===) instead of loose equality (==)",
+            "line": 301,
+            "code": "==",
+            "quickFix": {
+              "description": "Replace == with ===",
+              "before": "==",
+              "after": "==="
+            },
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST001",
+            "category": "coding-standards",
+            "message": "Export 'validateHandlerInput' appears to have no internal usage",
+            "line": 320,
+            "code": "validateHandlerInput",
+            "suggestion": "Verify this export is used by other modules or remove it",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST010",
+            "category": "coding-standards",
+            "message": "Magic number(s) detected: 2000",
+            "line": 137,
+            "code": "CustomRuleInputSchema = z.object({\n  action: z.enu",
+            "suggestion": "Extract to a named constant for clarity",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST010",
+            "category": "coding-standards",
+            "message": "Magic number(s) detected: 100000",
+            "line": 182,
+            "code": "AnalyzeCodeInputSchema = z.object({\n  code: z.stri",
+            "suggestion": "Extract to a named constant for clarity",
+            "source": "builtin"
+          }
+        ],
+        "score": 8,
+        "summary": {
+          "errors": 0,
+          "warnings": 18,
+          "info": 2,
+          "suggestions": 0
+        },
+        "quickFixes": [
+          {
+            "description": "Replace == with ===",
+            "before": "==",
+            "after": "==="
+          }
+        ],
+        "rulesApplied": {
+          "builtin": 20,
+          "user": 0,
+          "project": 0
+        }
+      },
+      "timestamp": 1767403749125,
+      "version": "1.0.0"
+    },
+    "tests/zodValidation.test.ts": {
+      "hash": "c5d00de2d003f235",
+      "result": {
+        "file": "tests/zodValidation.test.ts",
+        "language": "typescript",
+        "issues": [
+          {
+            "severity": "warning",
+            "rule": "AST004",
+            "category": "coding-standards",
+            "message": "Callback nesting depth: 4 (max: 3)",
+            "line": 215,
+            "code": "expect(() => validateOrThrow(ProjectTypeSchema, 'i",
+            "suggestion": "Refactor using async/await or Promise chaining",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST004",
+            "category": "coding-standards",
+            "message": "Callback nesting depth: 4 (max: 3)",
+            "line": 215,
+            "code": "validateOrThrow(ProjectTypeSchema, 'invalid')",
+            "suggestion": "Refactor using async/await or Promise chaining",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST004",
+            "category": "coding-standards",
+            "message": "Callback nesting depth: 4 (max: 3)",
+            "line": 219,
+            "code": "expect(() => validateOrThrow(ProjectTypeSchema, 'i",
+            "suggestion": "Refactor using async/await or Promise chaining",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST004",
+            "category": "coding-standards",
+            "message": "Callback nesting depth: 4 (max: 3)",
+            "line": 219,
+            "code": "validateOrThrow(ProjectTypeSchema, 'invalid', 'Set",
+            "suggestion": "Refactor using async/await or Promise chaining",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST004",
+            "category": "coding-standards",
+            "message": "Callback nesting depth: 4 (max: 3)",
+            "line": 225,
+            "code": "withValidation(SetupInputSchema, async (input) => ",
+            "suggestion": "Refactor using async/await or Promise chaining",
+            "source": "builtin"
+          },
+          {
+            "severity": "warning",
+            "rule": "AST004",
+            "category": "coding-standards",
+            "message": "Callback nesting depth: 4 (max: 3)",
+            "line": 234,
+            "code": "withValidation(SetupInputSchema, async (input) => ",
+            "suggestion": "Refactor using async/await or Promise chaining",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST010",
+            "category": "coding-standards",
+            "message": "Magic number(s) detected: 2000",
+            "line": 95,
+            "code": "longString = 'a'.repeat(2000)",
+            "suggestion": "Extract to a named constant for clarity",
+            "source": "builtin"
+          },
+          {
+            "severity": "info",
+            "rule": "AST002",
+            "category": "coding-standards",
+            "message": "Function 'anonymous' has an empty body",
+            "line": 287,
+            "code": "() => {\n      // After replacing and trimming, tra",
+            "suggestion": "Add implementation or a comment explaining why it is empty",
+            "source": "builtin"
+          }
+        ],
+        "score": 68,
+        "summary": {
+          "errors": 0,
+          "warnings": 6,
+          "info": 2,
+          "suggestions": 0
+        },
+        "rulesApplied": {
+          "builtin": 8,
+          "user": 0,
+          "project": 0
+        }
+      },
+      "timestamp": 1767403749354,
       "version": "1.0.0"
     }
   }

@@ -1,9 +1,10 @@
 /**
  * Router - Handler Registry Pattern for MCP Server
  * Replaces switch statements with clean registry-based routing
- * @version 3.4.0
+ * @version 3.6.0
  */
 
+import { z } from 'zod';
 import { ProjectType, SUPPORTED_PROJECTS } from '../config/types.js';
 import { textResponse, ServerState } from '../handlers/index.js';
 import { logger } from '../utils/logger.js';
@@ -42,19 +43,32 @@ export type ResourceReader = (
   }>;
 } | null>;
 
+interface RegisteredHandler {
+  handler: ToolHandler;
+  schema?: z.ZodSchema;
+}
+
 // ============================================================================
 // Tool Router
 // ============================================================================
 
 class ToolRouter {
-  private handlers: Map<string, ToolHandler> = new Map();
+  private handlers: Map<string, RegisteredHandler> = new Map();
   
-  register(name: string, handler: ToolHandler): this {
+  register(name: string, handler: ToolHandler, schema?: z.ZodSchema): this {
     if (this.handlers.has(name)) {
       logger.warn(`Overwriting handler for tool: ${name}`);
     }
-    this.handlers.set(name, handler);
+    this.handlers.set(name, { handler, schema });
     return this;
+  }
+  
+  registerWithSchema<T>(
+    name: string, 
+    schema: z.ZodSchema<T>,
+    handler: (args: T, state: ServerState) => Promise<ToolResponse>
+  ): this {
+    return this.register(name, handler as ToolHandler, schema);
   }
   
   registerAll(handlers: Record<string, ToolHandler>): this {
@@ -73,18 +87,35 @@ class ToolRouter {
     args: Record<string, unknown>,
     state: ServerState
   ): Promise<ToolResponse> {
-    const handler = this.handlers.get(name);
+    const registered = this.handlers.get(name);
     
-    if (!handler) {
+    if (!registered) {
       logger.warn(`Unknown tool: ${name}`);
       return textResponse(`Unknown tool: ${name}`);
     }
     
+    const { handler, schema } = registered;
     const startTime = Date.now();
     logger.debug(`Tool called: ${name}`, { args });
     
     try {
-      const result = await handler(args, state);
+      // Validate input if schema is provided
+      let validatedArgs = args;
+      if (schema) {
+        const result = schema.safeParse(args);
+        if (!result.success) {
+          const errorMessages = result.error.issues.map(issue => {
+            const path = issue.path.join('.');
+            return path ? `${path}: ${issue.message}` : issue.message;
+          }).join('; ');
+          
+          logger.warn(`Validation failed for ${name}`, { errors: errorMessages });
+          return textResponse(`Invalid input for "${name}": ${errorMessages}`);
+        }
+        validatedArgs = result.data;
+      }
+      
+      const result = await handler(validatedArgs, state);
       return result;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
