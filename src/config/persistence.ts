@@ -215,3 +215,69 @@ function generateId(): string {
 export function getConfigPath(): string {
   return CONFIG_DIR;
 }
+
+// ============================================================================
+// Generic Storage Functions
+// ============================================================================
+
+const GENERIC_STORAGE_FILE = join(CONFIG_DIR, 'storage.json');
+
+interface GenericStorage {
+  [key: string]: unknown;
+}
+
+function getGenericStorage(): GenericStorage {
+  ensureConfigDir();
+  
+  if (!existsSync(GENERIC_STORAGE_FILE)) {
+    return {};
+  }
+  
+  try {
+    const data = readFileSync(GENERIC_STORAGE_FILE, 'utf-8');
+    return JSON.parse(data) as GenericStorage;
+  } catch {
+    return {};
+  }
+}
+
+function saveGenericStorage(storage: GenericStorage): void {
+  ensureConfigDir();
+  writeFileSync(GENERIC_STORAGE_FILE, JSON.stringify(storage, null, 2));
+}
+
+/**
+ * Get a value from generic storage
+ */
+export function getStorageValue<T>(key: string): T | null {
+  const storage = getGenericStorage();
+  return (storage[key] as T) ?? null;
+}
+
+/**
+ * Set a value in generic storage
+ */
+export function setStorageValue<T>(key: string, value: T): void {
+  const storage = getGenericStorage();
+  storage[key] = value;
+  saveGenericStorage(storage);
+}
+
+/**
+ * Delete a value from generic storage
+ */
+export function deleteStorageValue(key: string): boolean {
+  const storage = getGenericStorage();
+  const exists = key in storage;
+  delete storage[key];
+  saveGenericStorage(storage);
+  return exists;
+}
+
+/**
+ * Check if a key exists in storage
+ */
+export function hasStorageValue(key: string): boolean {
+  const storage = getGenericStorage();
+  return key in storage;
+}
