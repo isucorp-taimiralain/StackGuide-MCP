@@ -3,12 +3,13 @@
  * Phase 3: Real code analysis with pattern matching
  * 
  * Improvements:
- * - Removed file limit (was 50, now unlimited)
+ * - Security limits to prevent DoS (max files, max size, timeout)
  * - Parallel file analysis with batching
  * - Respects .gitignore patterns
  * - Configurable scan depth (default 10)
  * - Incremental mode using git diff
  * - Analysis caching by file hash
+ * - Symlink detection and skipping
  */
 
 import { ProjectType } from '../config/types.js';
@@ -27,6 +28,12 @@ import { logger } from '../utils/logger.js';
 import { sanitizePath } from '../validation/schemas.js';
 import { safeFetch } from '../utils/safeFetch.js';
 
+// Security: Default limits to prevent DoS
+const DEFAULT_MAX_FILES = 500;
+const DEFAULT_MAX_TOTAL_SIZE = 20 * 1024 * 1024; // 20 MB
+const DEFAULT_MAX_FILE_SIZE = 100 * 1024; // 100 KB per file
+const SCAN_TIMEOUT_MS = 60000; // 60 seconds max scan time
+
 interface ReviewArgs {
   file?: string;
   url?: string;
@@ -34,7 +41,7 @@ interface ReviewArgs {
   focus?: 'all' | 'security' | 'performance' | 'architecture' | 'coding-standards';
   incremental?: boolean;  // Only analyze changed files (git diff)
   maxDepth?: number;      // Max directory depth (default 10)
-  maxFiles?: number;      // Max files to analyze (default unlimited)
+  maxFiles?: number;      // Max files to analyze (default 500)
   useCache?: boolean;     // Use analysis cache (default true)
 }
 
@@ -76,11 +83,18 @@ function parseGitignore(projectPath: string): string[] {
   const path = require('path');
   const gitignorePath = path.join(projectPath, '.gitignore');
   
-  if (!fs.existsSync(gitignorePath)) {
-    return [];
-  }
-  
   try {
+    if (!fs.existsSync(gitignorePath)) {
+      return [];
+    }
+    
+    const stat = fs.lstatSync(gitignorePath);
+    // Security: skip symlinks
+    if (stat.isSymbolicLink()) {
+      logger.warn('Skipping symlinked .gitignore', { path: gitignorePath });
+      return [];
+    }
+    
     const content = fs.readFileSync(gitignorePath, 'utf-8');
     return content
       .split('\n')
@@ -253,15 +267,50 @@ export async function handleReview(
     const exts = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs', '.rb', '.php'];
     let skippedByIgnore = 0;
     let skippedBySize = 0;
+    let skippedBySymlink = 0;
+    let totalBytesRead = 0;
+    let scanAborted = false;
+    let abortReason = '';
+    
+    // Security: apply default limits
+    const effectiveMaxFiles = maxFiles ?? DEFAULT_MAX_FILES;
+    const scanStartTime = Date.now();
 
     function scan(dir: string, depth = 0): void {
+      // Security: check timeout
+      if (Date.now() - scanStartTime > SCAN_TIMEOUT_MS) {
+        if (!scanAborted) {
+          scanAborted = true;
+          abortReason = `Scan timeout exceeded (${SCAN_TIMEOUT_MS / 1000}s)`;
+          logger.warn('Review scan aborted: timeout', { timeout: SCAN_TIMEOUT_MS });
+        }
+        return;
+      }
+      
       if (depth > maxDepth) return;
-      if (maxFiles && filesToAnalyze.length >= maxFiles) return;
+      if (filesToAnalyze.length >= effectiveMaxFiles) {
+        if (!scanAborted) {
+          scanAborted = true;
+          abortReason = `Max files limit reached (${effectiveMaxFiles})`;
+        }
+        return;
+      }
+      
+      // Security: check total size limit
+      if (totalBytesRead >= DEFAULT_MAX_TOTAL_SIZE) {
+        if (!scanAborted) {
+          scanAborted = true;
+          abortReason = `Max total size exceeded (${DEFAULT_MAX_TOTAL_SIZE / 1024 / 1024}MB)`;
+          logger.warn('Review scan aborted: size limit', { totalBytes: totalBytesRead });
+        }
+        return;
+      }
       
       try {
         const items = fs.readdirSync(dir);
         for (const item of items) {
-          if (maxFiles && filesToAnalyze.length >= maxFiles) return;
+          if (scanAborted) return;
+          if (filesToAnalyze.length >= effectiveMaxFiles) return;
           if (item.startsWith('.')) continue;
           
           const full = path.join(dir, item);
@@ -273,12 +322,20 @@ export async function handleReview(
             continue;
           }
           
-          const stat = fs.statSync(full);
+          // Security: use lstat to detect symlinks
+          const stat = fs.lstatSync(full);
+          
+          // Security: skip symlinks to prevent loops and escapes
+          if (stat.isSymbolicLink()) {
+            skippedBySymlink++;
+            continue;
+          }
+          
           if (stat.isDirectory()) {
             scan(full, depth + 1);
           } else if (exts.some(e => item.endsWith(e))) {
             // Check file size (skip files > 100KB)
-            if (stat.size > 100000) {
+            if (stat.size > DEFAULT_MAX_FILE_SIZE) {
               skippedBySize++;
               continue;
             }
@@ -290,6 +347,7 @@ export async function handleReview(
             
             try {
               const content = fs.readFileSync(full, 'utf-8');
+              totalBytesRead += Buffer.byteLength(content, 'utf-8');
               filesToAnalyze.push({ path: relativePath, content });
             } catch { /* ignore unreadable files */ }
           }
@@ -340,8 +398,11 @@ export async function handleReview(
     if (useCache) {
       report.push(`**Cache:** ${cacheHits} hits, ${cacheMisses} misses`);
     }
-    if (skippedByIgnore > 0 || skippedBySize > 0) {
-      report.push(`**Skipped:** ${skippedByIgnore} by ignore patterns, ${skippedBySize} by size limit`);
+    if (skippedByIgnore > 0 || skippedBySize > 0 || skippedBySymlink > 0) {
+      report.push(`**Skipped:** ${skippedByIgnore} by ignore patterns, ${skippedBySize} by size limit, ${skippedBySymlink} symlinks`);
+    }
+    if (scanAborted) {
+      report.push(`**⚠️ Scan Aborted:** ${abortReason}`);
     }
     report.push('');
     report.push(`## Overall Score: ${overall.averageScore}/100`);
@@ -390,6 +451,17 @@ export async function handleReview(
       analysisTime: `${analysisTime}ms`,
       cache: useCache ? { hits: cacheHits, misses: cacheMisses } : undefined,
       incremental,
+      scanAborted: scanAborted ? abortReason : undefined,
+      skipped: {
+        byIgnore: skippedByIgnore,
+        bySize: skippedBySize,
+        bySymlink: skippedBySymlink
+      },
+      limits: {
+        maxFiles: effectiveMaxFiles,
+        maxTotalSize: `${DEFAULT_MAX_TOTAL_SIZE / 1024 / 1024}MB`,
+        timeout: `${SCAN_TIMEOUT_MS / 1000}s`
+      },
       report: report.join('\n')
     });
   }

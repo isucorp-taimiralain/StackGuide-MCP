@@ -13,6 +13,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from '../utils/logger.js';
+import { safeFetch } from '../utils/safeFetch.js';
+import { sanitizeForPrompt } from '../validation/schemas.js';
 
 // Structure for a cursor.directory rule
 export interface CursorDirectoryRule {
@@ -35,10 +37,21 @@ interface PersistentCache {
   categories: Record<string, string[]>; // category -> slugs
 }
 
-const CACHE_VERSION = '1.0.0';
+const CACHE_VERSION = '1.1.0';
 const CACHE_DIR = '.stackguide';
 const CACHE_FILE = 'cursor-rules-cache.json';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+// Security: allowed hosts and limits
+const ALLOWED_HOSTS = ['cursor.directory'];
+const MAX_RESPONSE_BYTES = 512 * 1024; // 512 KB
+const FETCH_TIMEOUT_MS = 10000; // 10 seconds
+const MAX_CONTENT_LENGTH = 50000; // 50KB max rule content
+
+// Validate slug format to prevent path traversal
+function isValidSlug(slug: string): boolean {
+  return /^[a-z0-9][a-z0-9-]{0,100}$/.test(slug);
+}
 
 // Categories available on cursor.directory
 export const CURSOR_DIRECTORY_CATEGORIES = [
@@ -265,10 +278,19 @@ function extractRuleFromHtml(html: string, slug: string, category: string): Curs
     // Clean HTML from content
     content = cleanHtmlContent(content);
     
+    // Security: sanitize content to prevent prompt injection
+    content = sanitizeForPrompt(content, MAX_CONTENT_LENGTH);
+    
+    // Reject empty or suspiciously short content
+    if (!content || content.length < 10) {
+      logger.warn('Rejected rule with empty/invalid content', { slug, category });
+      return null;
+    }
+    
     // Extract description from meta or first paragraph
     const descMatch = html.match(/<meta\s+name="description"\s+content="([^"]+)"/i)
       || html.match(/<p[^>]*>([^<]+)<\/p>/i);
-    const description = descMatch ? descMatch[1].trim() : `${title} cursor rules`;
+    const description = descMatch ? sanitizeForPrompt(descMatch[1].trim(), 500) : `${title} cursor rules`;
     
     // Extract tags from content
     const tags = extractTagsFromContent(content, category);
@@ -407,6 +429,12 @@ function parseCategoryPage(html: string): string[] {
  * Falls back to cached version if offline
  */
 export async function fetchCursorDirectoryRule(slug: string, category: string = 'general'): Promise<CursorDirectoryRule | null> {
+  // Security: validate slug format
+  if (!isValidSlug(slug)) {
+    logger.audit('INVALID_SLUG_REJECTED', { slug, category, action: 'slug_validation_failed' });
+    return null;
+  }
+  
   // Check in-memory cache first
   const cacheKey = `${category}-${slug}`;
   if (rulesCache.has(cacheKey)) {
@@ -431,10 +459,17 @@ export async function fetchCursorDirectoryRule(slug: string, category: string = 
   
   try {
     const url = `${BASE_URL}/${slug}`;
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'StackGuide-MCP/1.0 (Cursor Rules Integration)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    
+    // Security: use safeFetch with limits
+    const response = await safeFetch(url, {
+      allowedHosts: ALLOWED_HOSTS,
+      timeoutMs: FETCH_TIMEOUT_MS,
+      maxBytes: MAX_RESPONSE_BYTES,
+      fetchOptions: {
+        headers: {
+          'User-Agent': 'StackGuide-MCP/3.8.0 (Cursor Rules Integration)',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        }
       }
     });
     
@@ -504,10 +539,17 @@ export async function browseCursorDirectoryCategory(category: string): Promise<C
   
   try {
     const url = `${BASE_URL}/rules/${category}`;
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'StackGuide-MCP/1.0 (Cursor Rules Integration)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    
+    // Security: use safeFetch with limits
+    const response = await safeFetch(url, {
+      allowedHosts: ALLOWED_HOSTS,
+      timeoutMs: FETCH_TIMEOUT_MS,
+      maxBytes: MAX_RESPONSE_BYTES,
+      fetchOptions: {
+        headers: {
+          'User-Agent': 'StackGuide-MCP/3.8.0 (Cursor Rules Integration)',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        }
       }
     });
     

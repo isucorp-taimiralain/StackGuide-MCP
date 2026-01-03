@@ -8,6 +8,7 @@ import Database from 'better-sqlite3';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { logger } from '../utils/logger.js';
 import type {
   ConfigStore,
   RuleStore,
@@ -20,6 +21,143 @@ import type {
   DEFAULT_STORAGE_OPTIONS
 } from './types.js';
 import type { UserConfiguration, ProjectType } from '../config/types.js';
+
+// ============================================================================
+// Security Constants and Validation
+// ============================================================================
+
+// Maximum lengths for user-provided strings
+const MAX_ID_LENGTH = 200;
+const MAX_NAME_LENGTH = 100;
+const MAX_KEY_LENGTH = 500;
+const MAX_CONTENT_LENGTH = 500000; // 500KB
+const MAX_JSON_DEPTH = 10;
+
+// Allowed characters for IDs (alphanumeric, dash, underscore, dot)
+const SAFE_ID_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
+
+// Dangerous path patterns
+const PATH_TRAVERSAL_PATTERNS = [
+  '..',
+  '~',
+  '$',
+  '%',
+  '\\',
+  '\0',
+];
+
+/**
+ * Validate and sanitize a storage path to prevent path traversal
+ */
+function validateStoragePath(basePath: string, allowedBase: string): string {
+  // Resolve to absolute path
+  const resolved = path.resolve(basePath);
+  const resolvedBase = path.resolve(allowedBase);
+  
+  // Check for path traversal attempts
+  for (const pattern of PATH_TRAVERSAL_PATTERNS) {
+    if (basePath.includes(pattern)) {
+      logger.warn('Path traversal attempt detected', { path: basePath, pattern });
+      throw new Error(`Invalid storage path: contains forbidden pattern`);
+    }
+  }
+  
+  // Ensure path is within allowed base
+  if (!resolved.startsWith(resolvedBase)) {
+    logger.warn('Path escape attempt detected', { path: basePath, resolved, allowedBase });
+    throw new Error(`Invalid storage path: must be within ${allowedBase}`);
+  }
+  
+  return resolved;
+}
+
+/**
+ * Validate ID format to prevent injection
+ */
+function validateId(id: string, fieldName: string = 'id'): string {
+  if (!id || typeof id !== 'string') {
+    throw new Error(`${fieldName} is required`);
+  }
+  
+  if (id.length > MAX_ID_LENGTH) {
+    throw new Error(`${fieldName} exceeds maximum length (${MAX_ID_LENGTH})`);
+  }
+  
+  // IDs can contain alphanumeric, dash, underscore, dot
+  if (!SAFE_ID_REGEX.test(id)) {
+    throw new Error(`${fieldName} contains invalid characters`);
+  }
+  
+  return id;
+}
+
+/**
+ * Validate and sanitize a name field
+ */
+function validateName(name: string, fieldName: string = 'name'): string {
+  if (!name || typeof name !== 'string') {
+    throw new Error(`${fieldName} is required`);
+  }
+  
+  if (name.length > MAX_NAME_LENGTH) {
+    throw new Error(`${fieldName} exceeds maximum length (${MAX_NAME_LENGTH})`);
+  }
+  
+  // Strip control characters but allow most printable
+  return name.replace(/[\x00-\x1f\x7f]/g, '').trim();
+}
+
+/**
+ * Validate cache key format
+ */
+function validateCacheKey(key: string): string {
+  if (!key || typeof key !== 'string') {
+    throw new Error('Cache key is required');
+  }
+  
+  if (key.length > MAX_KEY_LENGTH) {
+    throw new Error(`Cache key exceeds maximum length (${MAX_KEY_LENGTH})`);
+  }
+  
+  // Strip null bytes and control chars
+  return key.replace(/[\x00-\x1f\x7f]/g, '');
+}
+
+/**
+ * Validate content length
+ */
+function validateContent(content: string): string {
+  if (typeof content !== 'string') {
+    throw new Error('Content must be a string');
+  }
+  
+  if (content.length > MAX_CONTENT_LENGTH) {
+    throw new Error(`Content exceeds maximum length (${MAX_CONTENT_LENGTH})`);
+  }
+  
+  return content;
+}
+
+/**
+ * Safe JSON parse with depth limit
+ */
+function safeJsonParse<T>(json: string, maxDepth: number = MAX_JSON_DEPTH): T {
+  const parsed = JSON.parse(json);
+  
+  function checkDepth(obj: unknown, depth: number): void {
+    if (depth > maxDepth) {
+      throw new Error(`JSON nesting exceeds maximum depth (${maxDepth})`);
+    }
+    if (obj && typeof obj === 'object') {
+      for (const value of Object.values(obj)) {
+        checkDepth(value, depth + 1);
+      }
+    }
+  }
+  
+  checkDepth(parsed, 0);
+  return parsed;
+}
 
 // ============================================================================
 // Helper Functions
@@ -111,13 +249,14 @@ export class SQLiteConfigStore implements ConfigStore {
   }
   
   async save(name: string, config: UserConfiguration): Promise<SavedConfig> {
+    const validatedName = validateName(name);
     const id = generateId();
     const now = nowISO();
     
     this.db.prepare(`
       INSERT INTO configs (id, name, project_type, created_at, updated_at, data, is_active)
       VALUES (?, ?, ?, ?, ?, ?, 0)
-    `).run(id, name, config.projectType || 'react-typescript', now, now, JSON.stringify(config));
+    `).run(id, validatedName, config.projectType || 'react-typescript', now, now, JSON.stringify(config));
     
     return {
       id,
@@ -130,7 +269,8 @@ export class SQLiteConfigStore implements ConfigStore {
   }
   
   async load(id: string): Promise<SavedConfig | null> {
-    const row = this.db.prepare('SELECT * FROM configs WHERE id = ?').get(id) as any;
+    const validatedId = validateId(id);
+    const row = this.db.prepare('SELECT * FROM configs WHERE id = ?').get(validatedId) as any;
     
     if (!row) return null;
     
@@ -160,20 +300,22 @@ export class SQLiteConfigStore implements ConfigStore {
   }
   
   async delete(id: string): Promise<boolean> {
-    const result = this.db.prepare('DELETE FROM configs WHERE id = ?').run(id);
+    const validatedId = validateId(id);
+    const result = this.db.prepare('DELETE FROM configs WHERE id = ?').run(validatedId);
     return result.changes > 0;
   }
   
   async export(id: string): Promise<string | null> {
-    const config = await this.load(id);
+    const validatedId = validateId(id);
+    const config = await this.load(validatedId);
     if (!config) return null;
     return JSON.stringify(config, null, 2);
   }
   
   async import(json: string): Promise<SavedConfig> {
-    const parsed = JSON.parse(json);
-    const config = parsed.data || parsed;
-    const name = parsed.name || `imported-${Date.now()}`;
+    const parsed = safeJsonParse<{ data?: UserConfiguration; name?: string }>(json);
+    const config = parsed.data || (parsed as unknown as UserConfiguration);
+    const name = validateName(parsed.name || `imported-${Date.now()}`);
     return this.save(name, config);
   }
   
@@ -215,7 +357,12 @@ export class SQLiteRuleStore implements RuleStore {
   }
   
   async create(rule: Omit<StoredRule, 'id' | 'createdAt' | 'updatedAt'>): Promise<StoredRule> {
-    const id = `${rule.source}-${rule.projectType}-${rule.category}-${rule.name}`.replace(/\s+/g, '-');
+    // Validate inputs
+    const validatedName = validateName(rule.name, 'rule name');
+    const validatedCategory = validateName(rule.category, 'category');
+    const validatedContent = validateContent(rule.content);
+    
+    const id = `${rule.source}-${rule.projectType}-${validatedCategory}-${validatedName}`.replace(/\s+/g, '-');
     const now = nowISO();
     
     this.db.prepare(`
@@ -225,9 +372,9 @@ export class SQLiteRuleStore implements RuleStore {
     `).run(
       id,
       rule.projectType,
-      rule.category,
-      rule.name,
-      rule.content,
+      validatedCategory,
+      validatedName,
+      validatedContent,
       rule.enabled ? 1 : 0,
       rule.source,
       now,
@@ -244,7 +391,8 @@ export class SQLiteRuleStore implements RuleStore {
   }
   
   async get(id: string): Promise<StoredRule | null> {
-    const row = this.db.prepare('SELECT * FROM rules WHERE id = ?').get(id) as any;
+    const validatedId = validateId(id, 'rule id');
+    const row = this.db.prepare('SELECT * FROM rules WHERE id = ?').get(validatedId) as any;
     
     if (!row) return null;
     
@@ -284,8 +432,14 @@ export class SQLiteRuleStore implements RuleStore {
   }
   
   async update(id: string, updates: Partial<Omit<StoredRule, 'id' | 'createdAt'>>): Promise<StoredRule | null> {
-    const existing = await this.get(id);
+    const validatedId = validateId(id, 'rule id');
+    const existing = await this.get(validatedId);
     if (!existing) return null;
+    
+    // Validate any updated fields
+    if (updates.name) updates.name = validateName(updates.name, 'rule name');
+    if (updates.category) updates.category = validateName(updates.category, 'category');
+    if (updates.content) updates.content = validateContent(updates.content);
     
     const now = nowISO();
     const updated = { ...existing, ...updates, updatedAt: now };
@@ -310,21 +464,23 @@ export class SQLiteRuleStore implements RuleStore {
       updated.source,
       now,
       updated.metadata ? JSON.stringify(updated.metadata) : null,
-      id
+      validatedId
     );
     
     return updated;
   }
   
   async delete(id: string): Promise<boolean> {
-    const result = this.db.prepare('DELETE FROM rules WHERE id = ?').run(id);
+    const validatedId = validateId(id, 'rule id');
+    const result = this.db.prepare('DELETE FROM rules WHERE id = ?').run(validatedId);
     return result.changes > 0;
   }
   
   async setEnabled(id: string, enabled: boolean): Promise<boolean> {
+    const validatedId = validateId(id, 'rule id');
     const result = this.db.prepare(
       'UPDATE rules SET enabled = ?, updated_at = ? WHERE id = ?'
-    ).run(enabled ? 1 : 0, nowISO(), id);
+    ).run(enabled ? 1 : 0, nowISO(), validatedId);
     return result.changes > 0;
   }
   
@@ -342,7 +498,12 @@ export class SQLiteRuleStore implements RuleStore {
   }
   
   private createSync(rule: Omit<StoredRule, 'id' | 'createdAt' | 'updatedAt'>): StoredRule {
-    const id = `${rule.source}-${rule.projectType}-${rule.category}-${rule.name}`.replace(/\s+/g, '-');
+    // Validate inputs
+    const validatedName = validateName(rule.name, 'rule name');
+    const validatedCategory = validateName(rule.category, 'category');
+    const validatedContent = validateContent(rule.content);
+    
+    const id = `${rule.source}-${rule.projectType}-${validatedCategory}-${validatedName}`.replace(/\s+/g, '-');
     const now = nowISO();
     
     this.db.prepare(`
@@ -352,9 +513,9 @@ export class SQLiteRuleStore implements RuleStore {
     `).run(
       id,
       rule.projectType,
-      rule.category,
-      rule.name,
-      rule.content,
+      validatedCategory,
+      validatedName,
+      validatedContent,
       rule.enabled ? 1 : 0,
       rule.source,
       now,
@@ -362,7 +523,15 @@ export class SQLiteRuleStore implements RuleStore {
       rule.metadata ? JSON.stringify(rule.metadata) : null
     );
     
-    return { id, ...rule, createdAt: now, updatedAt: now };
+    return { 
+      id, 
+      ...rule, 
+      name: validatedName,
+      category: validatedCategory,
+      content: validatedContent,
+      createdAt: now, 
+      updatedAt: now 
+    };
   }
   
   async exportAll(filters?: { projectType?: ProjectType }): Promise<string> {
@@ -420,7 +589,8 @@ export class SQLiteCacheStore implements CacheStore {
   }
   
   async get<T = unknown>(key: string): Promise<CacheEntry<T> | null> {
-    const row = this.db.prepare('SELECT * FROM cache WHERE key = ?').get(key) as any;
+    const validatedKey = validateCacheKey(key);
+    const row = this.db.prepare('SELECT * FROM cache WHERE key = ?').get(validatedKey) as any;
     
     if (!row) return null;
     
@@ -447,6 +617,7 @@ export class SQLiteCacheStore implements CacheStore {
     lastModified?: string;
     metadata?: Record<string, unknown>;
   }): Promise<void> {
+    const validatedKey = validateCacheKey(key);
     const now = nowISO();
     const ttl = options?.ttl ?? this.defaultTTL;
     const expiresAt = ttl > 0 
@@ -458,7 +629,7 @@ export class SQLiteCacheStore implements CacheStore {
       (key, value, created_at, expires_at, etag, last_modified, metadata)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(
-      key,
+      validatedKey,
       JSON.stringify(value),
       now,
       expiresAt,
@@ -469,12 +640,14 @@ export class SQLiteCacheStore implements CacheStore {
   }
   
   async has(key: string): Promise<boolean> {
-    const entry = await this.get(key);
+    const validatedKey = validateCacheKey(key);
+    const entry = await this.get(validatedKey);
     return entry !== null;
   }
   
   async delete(key: string): Promise<boolean> {
-    const result = this.db.prepare('DELETE FROM cache WHERE key = ?').run(key);
+    const validatedKey = validateCacheKey(key);
+    const result = this.db.prepare('DELETE FROM cache WHERE key = ?').run(validatedKey);
     return result.changes > 0;
   }
   
@@ -529,15 +702,42 @@ export class SQLiteStorageManager implements StorageManager {
   private options: Required<StorageOptions>;
   
   constructor(options: StorageOptions = {}) {
-    const baseDir = options.baseDir || getDefaultBaseDir();
+    const defaultBase = getDefaultBaseDir();
+    const baseDir = options.baseDir || defaultBase;
+    
+    // Security: validate dbName doesn't contain path traversal
+    const dbName = options.dbName || 'stackguide.db';
+    if (dbName.includes('/') || dbName.includes('\\') || dbName.includes('..')) {
+      throw new Error('Invalid database name: must not contain path separators');
+    }
+    if (!dbName.endsWith('.db') && !dbName.endsWith('.sqlite')) {
+      throw new Error('Invalid database name: must end with .db or .sqlite');
+    }
     
     this.options = {
       baseDir,
-      dbName: options.dbName || 'stackguide.db',
+      dbName,
       walMode: options.walMode ?? true,
       defaultCacheTTL: options.defaultCacheTTL ?? 604800,
       debug: options.debug ?? false
     };
+    
+    // Security: validate storage path is within allowed base
+    // Only validate if custom baseDir is provided
+    if (options.baseDir) {
+      const resolved = path.resolve(baseDir);
+      const home = os.homedir();
+      const tmpDir = os.tmpdir();
+      // Allow paths under home directory, /tmp, or system temp directory
+      const isAllowed = resolved.startsWith(home) || 
+                       resolved.startsWith('/tmp') || 
+                       resolved.startsWith(tmpDir) ||
+                       resolved.startsWith('/var/folders'); // macOS temp
+      if (!isAllowed) {
+        logger.warn('Storage path outside allowed directories', { path: resolved });
+        throw new Error('Invalid storage path: must be within home or temp directory');
+      }
+    }
     
     // Ensure directory exists
     if (!fs.existsSync(baseDir)) {

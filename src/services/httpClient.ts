@@ -1,10 +1,12 @@
 /**
- * HttpClient - Centralized HTTP Client with Caching, Retries, and Rate Limiting
- * @version 3.4.0
+ * HttpClient - Centralized HTTP Client with Caching, Retries, Rate Limiting, and Circuit Breakers
+ * @version 3.8.2
  */
 
 import { getStorage } from '../storage/index.js';
 import { logger } from '../utils/logger.js';
+import { createServiceCircuitBreaker, CircuitOpenError, type CircuitBreaker } from '../utils/circuitBreaker.js';
+import { resilienceMetrics } from '../utils/resilienceMetrics.js';
 
 // ============================================================================
 // Types
@@ -28,6 +30,8 @@ export interface HttpRequestOptions {
   cacheTtlMs?: number;
   skipCache?: boolean;
   skipRateLimit?: boolean;
+  /** Skip circuit breaker protection */
+  skipCircuitBreaker?: boolean;
 }
 
 export interface RateLimitConfig {
@@ -183,9 +187,29 @@ class TokenBucketRateLimiter {
 class HttpClient {
   private rateLimiter: TokenBucketRateLimiter;
   private requestId: number = 0;
+  private circuits: Map<string, CircuitBreaker> = new Map();
   
   constructor() {
     this.rateLimiter = new TokenBucketRateLimiter(DEFAULT_RATE_LIMITS);
+  }
+  
+  private getCircuitBreaker(host: string): CircuitBreaker {
+    if (!this.circuits.has(host)) {
+      this.circuits.set(host, createServiceCircuitBreaker(`http:${host}`, {
+        failureThreshold: 5,
+        resetTimeoutMs: 30000,
+        callTimeoutMs: 30000,
+        isFailure: (error) => {
+          // Don't count 4xx client errors as failures for circuit breaker
+          const message = error.message.toLowerCase();
+          if (message.includes('404') || message.includes('400') || message.includes('401') || message.includes('403')) {
+            return false;
+          }
+          return true;
+        }
+      }));
+    }
+    return this.circuits.get(host)!;
   }
   
   async request<T = unknown>(
@@ -201,11 +225,13 @@ class HttpClient {
       retryDelay = DEFAULT_RETRY_DELAY,
       cacheTtlMs = DEFAULT_CACHE_TTL,
       skipCache = false,
-      skipRateLimit = false
+      skipRateLimit = false,
+      skipCircuitBreaker = false
     } = options;
     
     const reqId = ++this.requestId;
     const host = new URL(url).hostname;
+    const startTime = Date.now();
     
     // Check cache for GET requests
     if (method === 'GET' && !skipCache) {
@@ -218,22 +244,58 @@ class HttpClient {
     
     logger.debug(`[HTTP#${reqId}] ${method} ${url}`);
     
-    const execute = async (): Promise<HttpResponse<T>> => {
-      return this.executeWithRetry<T>(url, {
-        method,
-        headers,
-        body,
-        timeout,
-        retries,
-        retryDelay,
-        reqId
-      });
+    const executeWithMetrics = async (): Promise<HttpResponse<T>> => {
+      try {
+        const response = await this.executeWithRetry<T>(url, {
+          method,
+          headers,
+          body,
+          timeout,
+          retries,
+          retryDelay,
+          reqId
+        });
+        
+        // Record success metrics
+        resilienceMetrics.recordSuccess(host, Date.now() - startTime);
+        return response;
+      } catch (error) {
+        // Record failure metrics
+        const latency = Date.now() - startTime;
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        
+        if (errorMessage.includes('timeout')) {
+          resilienceMetrics.recordTimeout(host, latency);
+        } else {
+          resilienceMetrics.recordFailure(host, latency, errorMessage);
+        }
+        throw error;
+      }
     };
     
-    // Apply rate limiting
-    const response = skipRateLimit
-      ? await execute()
-      : await this.rateLimiter.acquire<HttpResponse<T>>(host, execute);
+    const executeWithRateLimit = async (): Promise<HttpResponse<T>> => {
+      return skipRateLimit
+        ? await executeWithMetrics()
+        : await this.rateLimiter.acquire<HttpResponse<T>>(host, executeWithMetrics);
+    };
+    
+    // Apply circuit breaker
+    let response: HttpResponse<T>;
+    if (skipCircuitBreaker) {
+      response = await executeWithRateLimit();
+    } else {
+      const circuit = this.getCircuitBreaker(host);
+      try {
+        response = await circuit.execute(executeWithRateLimit);
+      } catch (error) {
+        if (error instanceof CircuitOpenError) {
+          logger.warn(`[HTTP#${reqId}] Circuit breaker open for ${host}`, {
+            remainingMs: error.remainingMs
+          });
+        }
+        throw error;
+      }
+    }
     
     // Cache successful GET responses
     if (method === 'GET' && response.status >= 200 && response.status < 300 && !skipCache) {
@@ -415,6 +477,52 @@ class HttpClient {
   
   async delete<T = unknown>(url: string, options?: Omit<HttpRequestOptions, 'method'>): Promise<HttpResponse<T>> {
     return this.request<T>(url, { ...options, method: 'DELETE' });
+  }
+  
+  /**
+   * Get health metrics for all HTTP services
+   */
+  getHealthMetrics() {
+    return resilienceMetrics.getOverallHealth();
+  }
+  
+  /**
+   * Quick health check
+   */
+  healthCheck() {
+    return resilienceMetrics.quickHealthCheck();
+  }
+  
+  /**
+   * Get circuit breaker states
+   */
+  getCircuitStates(): Record<string, { state: string; failures: number }> {
+    const states: Record<string, { state: string; failures: number }> = {};
+    this.circuits.forEach((circuit, host) => {
+      const metrics = circuit.getMetrics();
+      states[host] = { state: metrics.state, failures: metrics.failures };
+    });
+    return states;
+  }
+  
+  /**
+   * Reset a specific circuit breaker
+   */
+  resetCircuit(host: string): boolean {
+    const circuit = this.circuits.get(host);
+    if (circuit) {
+      circuit.reset();
+      return true;
+    }
+    return false;
+  }
+  
+  /**
+   * Reset all circuit breakers
+   */
+  resetAllCircuits(): void {
+    this.circuits.forEach(circuit => circuit.reset());
+    logger.info('All HTTP circuit breakers reset');
   }
 }
 
