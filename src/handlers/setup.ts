@@ -1,6 +1,7 @@
 /**
  * Setup handler - configures StackGuide for a project
  * Includes interactive wizard with recommendations
+ * Enhanced with Project Intelligence in v3.3.0
  */
 
 import { ProjectType as ConfigProjectType, SUPPORTED_PROJECTS } from '../config/types.js';
@@ -10,6 +11,7 @@ import * as autoDetect from '../services/autoDetect.js';
 import { ServerState, ToolResponse, jsonResponse, errorResponse } from './types.js';
 import { logger } from '../utils/logger.js';
 import { SetupInputSchema, validate } from '../utils/validation.js';
+import { analyzeStructure, analyzeConfigurations, analyzeDependencies } from '../services/intelligence/index.js';
 
 // Recommendations based on project type
 const PROJECT_RECOMMENDATIONS: Record<string, {
@@ -175,6 +177,43 @@ export async function handleSetup(
   };
 
   const recommendations = getRecommendations(detectedType);
+  
+  // Run quick intelligence analysis for enhanced setup (v3.3.0)
+  let intelligence: {
+    structureScore: number;
+    configScore: number;
+    dependencyScore: number;
+    quickWins: string[];
+  } | undefined;
+  
+  try {
+    const structure = analyzeStructure(resolvedPath, detectedType);
+    const config = analyzeConfigurations(resolvedPath, detectedType);
+    const deps = analyzeDependencies(resolvedPath, detectedType);
+    
+    const quickWins: string[] = [];
+    
+    // Add quick wins from missing high-priority items
+    for (const dir of structure.missingDirs.filter(d => d.priority === 'high').slice(0, 2)) {
+      quickWins.push(`Create \`${dir.path}/\` directory`);
+    }
+    for (const cfg of config.recommendedConfigs.filter(c => c.priority === 'critical' || c.priority === 'high').slice(0, 2)) {
+      quickWins.push(`Add \`${cfg.filename}\` configuration`);
+    }
+    for (const dep of deps.recommendedAdditions.filter(d => d.priority === 'high').slice(0, 2)) {
+      quickWins.push(`Install \`${dep.name}\` (${dep.reason})`);
+    }
+    
+    intelligence = {
+      structureScore: structure.structureScore,
+      configScore: config.configScore,
+      dependencyScore: deps.dependencyScore,
+      quickWins
+    };
+  } catch {
+    // Intelligence analysis is optional, don't fail setup
+  }
+  
   logger.tool('setup', { path: projectPath, type: projectType, detected: detectedType }, startTime);
 
   return jsonResponse({
@@ -188,6 +227,18 @@ export async function handleSetup(
     },
     rulesLoaded: state.loadedRules.length,
     knowledgeLoaded: state.loadedKnowledge.length,
+    intelligence: intelligence ? {
+      scores: {
+        structure: intelligence.structureScore,
+        configuration: intelligence.configScore,
+        dependencies: intelligence.dependencyScore,
+        average: Math.round((intelligence.structureScore + intelligence.configScore + intelligence.dependencyScore) / 3)
+      },
+      quickWins: intelligence.quickWins.length > 0 ? intelligence.quickWins : undefined,
+      tip: intelligence.quickWins.length > 0 
+        ? 'Run `analyze` for detailed project intelligence report'
+        : 'Your project structure looks good! Run `analyze` for details'
+    } : undefined,
     wizard: {
       step: '1/3 - Setup Complete ✓',
       detectedAs: project.name,
@@ -200,6 +251,7 @@ export async function handleSetup(
       nextSteps: [
         `📋 Run \`context\` to see ${state.loadedRules.length} loaded rules`,
         `🔍 Run \`review\` to analyze your code`,
+        `🧠 Run \`analyze\` for project intelligence`,
         `🏥 Run \`health\` to check project health`,
         ...recommendations.commands.map(cmd => `💡 Try: \`${cmd}\``)
       ]

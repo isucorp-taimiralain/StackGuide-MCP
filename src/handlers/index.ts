@@ -14,5 +14,6 @@ export { handleCustomRule } from './custom-rule.js';
 export { handleHelp } from './help.js';
 export { handleGenerate } from './generate.js';
 export { handleHealth } from './health.js';
+export { handleAnalyze } from './analyze.js';
 
 export * from './types.js';

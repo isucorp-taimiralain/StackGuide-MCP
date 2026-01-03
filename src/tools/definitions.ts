@@ -320,5 +320,40 @@ export const toolDefinitions = [
       },
       required: []
     }
+  },
+
+  // ==================== PROJECT INTELLIGENCE (1) - NEW in v3.3.0 ====================
+  {
+    name: 'analyze',
+    description: 'Project Intelligence: Comprehensive analysis of project structure, configuration, and dependencies. Provides smart recommendations, generates optimal configs, and suggests improvements based on framework best practices.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: 'Type of analysis to perform',
+          enum: ['full', 'structure', 'config', 'dependencies', 'generate', 'apply']
+        },
+        path: {
+          type: 'string',
+          description: 'Project path to analyze (default: current directory)'
+        },
+        configType: {
+          type: 'string',
+          description: 'Config type to generate (for action:"generate")',
+          enum: ['eslint', 'prettier', 'tsconfig', 'editorconfig', 'gitignore', 'vitest', 'jest']
+        },
+        autoFix: {
+          type: 'boolean',
+          description: 'Automatically apply safe fixes (default: false)'
+        },
+        format: {
+          type: 'string',
+          description: 'Output format',
+          enum: ['json', 'markdown']
+        }
+      },
+      required: []
+    }
   }
 ];

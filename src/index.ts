@@ -48,6 +48,7 @@ import {
   handleHelp,
   handleGenerate,
   handleHealth,
+  handleAnalyze,
   ServerState,
   textResponse
 } from './handlers/index.js';
@@ -67,7 +68,7 @@ const serverState: ServerState = {
 const server = new Server(
   {
     name: 'stackguide-mcp',
-    version: '2.4.0',
+    version: '3.3.0',
   },
   {
     capabilities: {
@@ -116,6 +117,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<{ conte
         return await handleGenerate(args as any, serverState);
       case 'health':
         return await handleHealth(args as any, serverState);
+      case 'analyze':
+        return await handleAnalyze(args as any, serverState);
       default:
         logger.warn(`Unknown tool: ${name}`);
         return textResponse(`Unknown tool: ${name}`);
