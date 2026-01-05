@@ -207,11 +207,24 @@ export class RealProjectFs implements ProjectFs {
     if (paths.length === 0) return this.basePath;
     
     const firstPath = paths[0];
+    let resolved: string;
+    
     if (path.isAbsolute(firstPath)) {
-      return path.resolve(...paths);
+      resolved = path.resolve(...paths);
+    } else {
+      resolved = path.resolve(this.basePath, ...paths);
     }
     
-    return path.resolve(this.basePath, ...paths);
+    // SECURITY: Prevent path traversal attacks
+    // Ensure the resolved path stays within the base directory
+    const normalizedBase = path.normalize(this.basePath + path.sep);
+    const normalizedResolved = path.normalize(resolved + path.sep);
+    
+    if (!normalizedResolved.startsWith(normalizedBase) && resolved !== this.basePath) {
+      throw new Error(`Access denied: Path '${paths.join('/')}' escapes workspace boundary`);
+    }
+    
+    return resolved;
   }
   
   join(...paths: string[]): string {
@@ -351,11 +364,23 @@ export class MockProjectFs implements ProjectFs {
     if (paths.length === 0) return this.basePath;
     
     const firstPath = paths[0];
+    let resolved: string;
+    
     if (path.isAbsolute(firstPath)) {
-      return path.resolve(...paths);
+      resolved = path.resolve(...paths);
+    } else {
+      resolved = path.resolve(this.basePath, ...paths);
     }
     
-    return path.resolve(this.basePath, ...paths);
+    // SECURITY: Prevent path traversal attacks (consistent with RealProjectFs)
+    const normalizedBase = path.normalize(this.basePath + path.sep);
+    const normalizedResolved = path.normalize(resolved + path.sep);
+    
+    if (!normalizedResolved.startsWith(normalizedBase) && resolved !== this.basePath) {
+      throw new Error(`Access denied: Path '${paths.join('/')}' escapes workspace boundary`);
+    }
+    
+    return resolved;
   }
   
   join(...paths: string[]): string {

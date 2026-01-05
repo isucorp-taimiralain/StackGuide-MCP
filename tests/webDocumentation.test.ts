@@ -209,17 +209,24 @@ describe('webDocumentation', () => {
     });
 
     it('should handle partial failures', async () => {
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: true,
-          headers: new Headers({ 'content-type': 'text/html' }),
-          text: async () => '<html><title>Good Doc</title><body>Good content</body></html>'
-        })
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 500,
-          statusText: 'Server Error'
-        });
+      // Use URL-based response mapping for parallel fetch reliability
+      mockFetch.mockImplementation(async (url: string) => {
+        if (url === 'https://example.com/good') {
+          return {
+            ok: true,
+            headers: new Headers({ 'content-type': 'text/html' }),
+            text: async () => '<html><title>Good Doc</title><body>Good content</body></html>'
+          };
+        }
+        if (url === 'https://example.com/bad') {
+          return {
+            ok: false,
+            status: 500,
+            statusText: 'Server Error'
+          };
+        }
+        throw new Error('Unexpected URL');
+      });
 
       const results = await fetchMultipleDocuments([
         'https://example.com/good',

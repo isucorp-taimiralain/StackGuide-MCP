@@ -286,15 +286,20 @@ describe('Sanitization Utilities', () => {
   });
 
   describe('sanitizePath', () => {
-    it('should remove directory traversal', () => {
-      expect(sanitizePath('../../../etc/passwd')).toBe('/etc/passwd');
-      // Note: simple string replacement leaves double slashes
-      expect(sanitizePath('path/../file')).toBe('path//file');
+    it('should reject directory traversal (security fix v3.10.0)', () => {
+      // sanitizePath now throws on dangerous patterns instead of silently modifying
+      expect(() => sanitizePath('../../../etc/passwd')).toThrow('forbidden pattern');
+      expect(() => sanitizePath('path/../file')).toThrow('forbidden pattern');
     });
 
-    it('should normalize slashes', () => {
+    it('should normalize slashes for valid paths', () => {
       expect(sanitizePath('path\\to\\file')).toBe('path/to/file');
       expect(sanitizePath('///multiple')).toBe('/multiple');
+    });
+
+    it('should accept safe paths', () => {
+      expect(sanitizePath('src/index.ts')).toBe('src/index.ts');
+      expect(sanitizePath('nested/deep/file.ts')).toBe('nested/deep/file.ts');
     });
   });
 

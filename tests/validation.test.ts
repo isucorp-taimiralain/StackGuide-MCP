@@ -232,3 +232,68 @@ describe('validation schemas', () => {
     });
   });
 });
+
+// Import sanitizePath from schemas.ts for security tests
+import { sanitizePath } from '../src/validation/schemas.js';
+
+describe('sanitizePath Security', () => {
+  describe('valid paths', () => {
+    it('should accept normal relative paths', () => {
+      expect(() => sanitizePath('src/index.ts')).not.toThrow();
+      expect(() => sanitizePath('nested/deep/file.ts')).not.toThrow();
+      expect(() => sanitizePath('file.txt')).not.toThrow();
+    });
+
+    it('should accept paths with dots in filename', () => {
+      expect(() => sanitizePath('file.test.ts')).not.toThrow();
+      expect(() => sanitizePath('.gitignore')).not.toThrow();
+    });
+  });
+
+  describe('path traversal attacks', () => {
+    it('should reject parent directory traversal', () => {
+      expect(() => sanitizePath('../etc/passwd')).toThrow('forbidden pattern');
+      expect(() => sanitizePath('../../secret.key')).toThrow('forbidden pattern');
+      expect(() => sanitizePath('src/../../../etc/passwd')).toThrow('forbidden pattern');
+    });
+
+    it('should reject URL-encoded traversal', () => {
+      expect(() => sanitizePath('%2e%2e/etc/passwd')).toThrow('forbidden pattern');
+      expect(() => sanitizePath('%252e%252e/secret')).toThrow('forbidden pattern');
+    });
+
+    it('should reject null byte injection', () => {
+      expect(() => sanitizePath('file.txt\x00.jpg')).toThrow('forbidden pattern');
+    });
+
+    it('should reject home directory expansion', () => {
+      expect(() => sanitizePath('~/.ssh/id_rsa')).toThrow('forbidden pattern');
+      expect(() => sanitizePath('~')).toThrow('forbidden pattern');
+    });
+
+    it('should reject Windows drive letters', () => {
+      expect(() => sanitizePath('C:/Windows/System32')).toThrow('forbidden pattern');
+      expect(() => sanitizePath('D:/secret.txt')).toThrow('forbidden pattern');
+    });
+
+    it('should reject UNC paths', () => {
+      expect(() => sanitizePath('\\\\server\\share')).toThrow('forbidden pattern');
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should reject empty paths', () => {
+      expect(() => sanitizePath('')).toThrow('Path is required');
+    });
+
+    it('should reject paths that are too long', () => {
+      const longPath = 'a'.repeat(1025);
+      expect(() => sanitizePath(longPath)).toThrow('maximum length');
+    });
+
+    it('should normalize backslashes', () => {
+      const result = sanitizePath('src\\file.ts');
+      expect(result).toBe('src/file.ts');
+    });
+  });
+});

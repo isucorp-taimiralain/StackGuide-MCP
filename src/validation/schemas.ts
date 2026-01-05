@@ -301,13 +301,49 @@ export function sanitizeForPrompt(input: string, maxLength = 8000): string {
 }
 
 /**
- * Sanitize file path
+ * Dangerous path patterns that indicate traversal or escape attempts
+ */
+const DANGEROUS_PATH_PATTERNS = [
+  /\.\./,                    // Parent directory
+  /^~\//,                    // Home directory
+  /^~$/,                     // Home directory
+  /%2e%2e/i,                 // URL-encoded ..
+  /%252e%252e/i,             // Double URL-encoded ..
+  /\x00/,                    // Null byte
+  /\\\\+/,                   // UNC paths (Windows)
+  /^[a-zA-Z]:/,              // Windows drive letters
+];
+
+/**
+ * Sanitize file path - validates and cleans user-provided paths
+ * Throws on dangerous patterns rather than silently modifying
+ * @throws Error if path contains dangerous patterns
  */
 export function sanitizePath(input: string): string {
-  return input
-    .replace(/\.\./g, '') // Remove directory traversal
-    .replace(/^\/+/, '/') // Normalize leading slashes
-    .replace(/\\/g, '/'); // Normalize backslashes
+  if (!input || typeof input !== 'string') {
+    throw new Error('Path is required');
+  }
+  
+  if (input.length > 1024) {
+    throw new Error('Path exceeds maximum length (1024 chars)');
+  }
+  
+  // Check for dangerous patterns
+  for (const pattern of DANGEROUS_PATH_PATTERNS) {
+    if (pattern.test(input)) {
+      throw new Error(`Invalid path: contains forbidden pattern`);
+    }
+  }
+  
+  // Normalize path separators
+  const normalized = input.replace(/\\/g, '/');
+  
+  // Additional check after normalization
+  if (normalized.includes('..')) {
+    throw new Error('Invalid path: directory traversal not allowed');
+  }
+  
+  return normalized.replace(/^\/+/, '/'); // Normalize leading slashes
 }
 
 /**

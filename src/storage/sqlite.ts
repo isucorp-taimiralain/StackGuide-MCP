@@ -1,7 +1,7 @@
 /**
  * SQLite Storage Implementation
  * Persistent storage using better-sqlite3
- * @version 3.4.0
+ * @version 3.5.0
  */
 
 import Database from 'better-sqlite3';
@@ -18,6 +18,7 @@ import type {
   SavedConfig,
   StoredRule,
   CacheEntry,
+  PostgresConnectionOptions,
   DEFAULT_STORAGE_OPTIONS
 } from './types.js';
 import type { UserConfiguration, ProjectType } from '../config/types.js';
@@ -699,7 +700,7 @@ export class SQLiteStorageManager implements StorageManager {
   private _config: SQLiteConfigStore;
   private _rules: SQLiteRuleStore;
   private _cache: SQLiteCacheStore;
-  private options: Required<StorageOptions>;
+  private options: Required<Omit<StorageOptions, 'postgres'>> & { postgres?: PostgresConnectionOptions };
   
   constructor(options: StorageOptions = {}) {
     const defaultBase = getDefaultBaseDir();
@@ -715,11 +716,13 @@ export class SQLiteStorageManager implements StorageManager {
     }
     
     this.options = {
+      provider: options.provider ?? 'sqlite',
       baseDir,
       dbName,
       walMode: options.walMode ?? true,
       defaultCacheTTL: options.defaultCacheTTL ?? 604800,
-      debug: options.debug ?? false
+      debug: options.debug ?? false,
+      postgres: options.postgres
     };
     
     // Security: validate storage path is within allowed base

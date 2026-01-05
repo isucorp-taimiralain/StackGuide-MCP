@@ -1,5 +1,5 @@
 /**
- * Code Analyzer Service - v3.2.0
+ * Code Analyzer Service - v3.3.0
  * Unified rule pipeline that supports builtin, user, and project rules
  * Now with AST-based analysis using ts-morph
  * Added multi-language parser support (Python, Go, Rust)
@@ -28,11 +28,76 @@ export { clearASTCache };
 export { parserRegistry };
 
 // =============================================================================
+// RESOURCE LIMITS (DoS Protection)
+// =============================================================================
+
+/**
+ * Maximum file size for analysis (1MB)
+ * Files larger than this will be rejected to prevent memory exhaustion
+ */
+export const MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024;
+
+/**
+ * Maximum number of lines for analysis (50,000)
+ * Prevents hanging on extremely long files
+ */
+export const MAX_LINE_COUNT = 50_000;
+
+/**
+ * Maximum number of files in a batch analysis
+ */
+export const MAX_BATCH_FILES = 100;
+
+/**
+ * Timeout for AST analysis (30 seconds)
+ */
+export const AST_ANALYSIS_TIMEOUT_MS = 30_000;
+
+/**
+ * Validate file content before analysis
+ * Throws if content exceeds safe limits
+ */
+export function validateFileForAnalysis(filepath: string, content: string): void {
+  const byteSize = Buffer.byteLength(content, 'utf-8');
+  
+  if (byteSize > MAX_FILE_SIZE_BYTES) {
+    throw new Error(
+      `File too large for analysis: ${filepath} (${(byteSize / 1024 / 1024).toFixed(2)}MB). ` +
+      `Maximum allowed: ${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB`
+    );
+  }
+  
+  const lineCount = content.split('\n').length;
+  if (lineCount > MAX_LINE_COUNT) {
+    throw new Error(
+      `File has too many lines for analysis: ${filepath} (${lineCount} lines). ` +
+      `Maximum allowed: ${MAX_LINE_COUNT} lines`
+    );
+  }
+}
+
+// =============================================================================
 // BUILTIN PATTERN RULES
 // =============================================================================
 
+/**
+ * IMPORTANT: Pattern-based security rules are supplementary and can be evaded.
+ * For production-critical security scanning, prefer AST-based rules (see astAnalyzer.ts).
+ * 
+ * Pattern rules are useful for:
+ * - Quick initial scans
+ * - Non-TS/JS languages where AST analysis isn't available
+ * - Catching obvious issues during development
+ * 
+ * Pattern rules are NOT reliable for:
+ * - Detecting obfuscated vulnerabilities
+ * - Comprehensive security audits
+ * - Code with complex control flow
+ * 
+ * @deprecated for security-critical use cases. Prefer AST rules.
+ */
 const BUILTIN_PATTERN_RULES: PatternRule[] = [
-  // Security
+  // Security (Pattern-based - supplementary, not authoritative)
   {
     id: 'SEC001',
     type: 'pattern',
@@ -827,6 +892,9 @@ export function analyzeCode(
   content: string,
   focus: 'all' | 'security' | 'performance' | 'architecture' | 'coding-standards' = 'all'
 ): AnalysisResult {
+  // SECURITY: Validate file size/line count before processing
+  validateFileForAnalysis(file, content);
+  
   const language = detectLanguage(file, content);
   const issues: CodeIssue[] = [];
 

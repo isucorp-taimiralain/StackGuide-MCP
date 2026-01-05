@@ -1,10 +1,35 @@
 /**
  * Storage Layer Types
  * Defines interfaces for persistent storage (SQLite/JSON)
- * @version 3.4.0
+ * @version 3.5.0
  */
 
 import type { UserConfiguration, ProjectType } from '../config/types.js';
+
+// ============================================================================
+// Storage Provider Types (for future database adapters)
+// ============================================================================
+
+/**
+ * Supported storage backends
+ * - 'sqlite': Local SQLite database (default, good for development/single-node)
+ * - 'postgres': PostgreSQL (recommended for production, supports horizontal scaling)
+ * - 'memory': In-memory storage (for testing only)
+ */
+export type StorageProviderType = 'sqlite' | 'postgres' | 'memory';
+
+/**
+ * Provider-specific connection options
+ */
+export interface PostgresConnectionOptions {
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+  ssl?: boolean;
+  poolSize?: number;
+}
 
 // ============================================================================
 // Config Store Interface
@@ -189,6 +214,9 @@ export interface StorageManager {
 // ============================================================================
 
 export interface StorageOptions {
+  /** Storage provider type (default: 'sqlite') */
+  provider?: StorageProviderType;
+  
   /** Base directory for storage (default: ~/.stackguide) */
   baseDir?: string;
   
@@ -203,12 +231,27 @@ export interface StorageOptions {
   
   /** Enable debug logging */
   debug?: boolean;
+  
+  /** PostgreSQL connection options (required when provider='postgres') */
+  postgres?: PostgresConnectionOptions;
 }
 
-export const DEFAULT_STORAGE_OPTIONS: Required<StorageOptions> = {
+export const DEFAULT_STORAGE_OPTIONS: Required<Omit<StorageOptions, 'postgres'>> & { postgres?: PostgresConnectionOptions } = {
+  provider: 'sqlite',
   baseDir: '',  // Will be set to ~/.stackguide at runtime
   dbName: 'stackguide.db',
   walMode: true,
   defaultCacheTTL: 604800, // 7 days
-  debug: false
+  debug: false,
+  postgres: undefined
 };
+
+// ============================================================================
+// Storage Factory (for future provider implementations)
+// ============================================================================
+
+/**
+ * Factory function type for creating storage managers
+ * Implement this for each provider (SQLite, Postgres, etc.)
+ */
+export type StorageFactory = (options: StorageOptions) => Promise<StorageManager>;
