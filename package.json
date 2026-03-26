@@ -1,6 +1,6 @@
 {
   "name": "@stackguide/mcp-server",
-  "version": "3.10.0",
+  "version": "3.10.1",
   "description": "MCP Server for dynamic language and framework context loading - Compatible with Cursor and GitHub Copilot",
   "main": "dist/index.js",
   "bin": {

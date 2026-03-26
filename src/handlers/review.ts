@@ -12,6 +12,8 @@
  * - Symlink detection and skipping
  */
 
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { ProjectType } from '../config/types.js';
 import * as rulesProvider from '../resources/rulesProvider.js';
 import * as knowledgeProvider from '../resources/knowledgeProvider.js';
@@ -133,22 +135,27 @@ function shouldIgnore(relativePath: string, ignorePatterns: string[]): boolean {
   return false;
 }
 
+const execFileAsync = promisify(execFile);
+
 /**
  * Get list of changed files from git
  */
 async function getChangedFiles(projectPath: string): Promise<string[]> {
-  const { exec } = require('child_process');
-  const { promisify } = require('util');
-  const execAsync = promisify(exec);
-  
   try {
-    // Get both staged and unstaged changes
-    const { stdout } = await execAsync(
-      'git diff --name-only HEAD && git diff --name-only --cached',
-      { cwd: projectPath }
-    );
-    
-    return [...new Set(stdout.trim().split('\n').filter(Boolean))] as string[];
+    // Get both staged and unstaged changes - use execFile (no shell spawning)
+    const [unstaged, staged] = await Promise.allSettled([
+      execFileAsync('git', ['diff', '--name-only', 'HEAD'], { cwd: projectPath }),
+      execFileAsync('git', ['diff', '--name-only', '--cached'], { cwd: projectPath })
+    ]);
+
+    const files: string[] = [];
+    if (unstaged.status === 'fulfilled') {
+      files.push(...unstaged.value.stdout.trim().split('\n').filter(Boolean));
+    }
+    if (staged.status === 'fulfilled') {
+      files.push(...staged.value.stdout.trim().split('\n').filter(Boolean));
+    }
+    return [...new Set(files)];
   } catch {
     logger.debug('Git not available or not a git repository');
     return [];

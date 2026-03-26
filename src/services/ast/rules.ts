@@ -65,7 +65,7 @@ const evalUsageRule: TreeSitterRule = {
   check: (matches) => checkMatches(
     matches, 'fn', text => text === 'eval',
     node => createIssue('TS-SEC001', 'Avoid eval() - code injection vulnerability', 'error', node, {
-      suggestion: 'Use JSON.parse() or Function constructor if needed'
+      suggestion: 'Use JSON.parse() for JSON data, or restructure logic to avoid dynamic execution'
     })
   )
 };
