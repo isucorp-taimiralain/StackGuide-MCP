@@ -1,0 +1,10 @@
+# Socket.dev security configuration
+# https://docs.socket.dev/docs/socket-yml
+version: 2
+issues:
+  networkAccess:
+    # This MCP server intentionally fetches external web documentation
+    # on explicit user request via the `docs action:"fetch" url:"..."` command.
+    # All requests go through safeFetch.ts which enforces allowlists, timeouts,
+    # and byte limits. No background or automatic network requests are made.
+    ignore: true

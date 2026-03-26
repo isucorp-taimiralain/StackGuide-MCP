@@ -12,9 +12,10 @@ describe('Quick Fix Suggestions', () => {
         const data = eval(userInput);
       `;
       const result = analyzeCode('test.js', code, 'security');
-      
+
       const evalIssue = result.issues.find(i => i.rule === 'SEC001');
       expect(evalIssue).toBeDefined();
+      expect(evalIssue?.severity).toBe('error');
       expect(evalIssue?.quickFix).toBeDefined();
       expect(evalIssue?.quickFix?.description).toContain('JSON.parse');
       expect(evalIssue?.quickFix?.after).toBe('JSON.parse(');
