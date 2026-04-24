@@ -1,53 +1,21 @@
 {
-  "$schema": "https://registry.modelcontextprotocol.io/schemas/server.json",
-  "name": "stackguide",
-  "description": "Dynamic context loading for AI coding assistants. TDD agentic workflow, code review with AST analysis, project health scoring, and 13+ stacks supported. Lazy-loads only what you need to save tokens.",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.isucorp-taimiralain/stackguide-mcp",
+  "description": "Dynamic context loading for AI assistants with TDD workflow and AST analysis",
   "repository": {
-    "url": "https://github.com/taimiralain/StackGuide-MCP",
+    "url": "https://github.com/isucorp-taimiralain/StackGuide-MCP",
     "source": "github"
   },
-  "version_detail": {
-    "version": "4.0.0",
-    "release_date": "2026-04-24",
-    "is_latest": true
-  },
+  "version": "4.0.0",
   "packages": [
     {
-      "registry_name": "npm",
-      "name": "@stackguide/mcp-server",
+      "registryType": "npm",
+      "identifier": "@stackguide/mcp-server",
       "version": "4.0.0",
-      "runtime": "node",
-      "runtime_arguments": [],
-      "package_arguments": [],
-      "environment_variables": []
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": []
     }
-  ],
-  "tools": [
-    { "name": "setup", "description": "Configure StackGuide for your project with auto-detection" },
-    { "name": "review", "description": "AST-powered code review with Quick Fix suggestions" },
-    { "name": "health", "description": "Project health score (A-F) with recommendations" },
-    { "name": "analyze", "description": "Full project intelligence analysis" },
-    { "name": "workflow", "description": "Lazy-load TDD agentic workflow (agents, skills, hooks)" },
-    { "name": "init", "description": "Scaffold .stackguide/ with stack-specific workflow files" },
-    { "name": "generate", "description": "Generate boilerplate code from templates" },
-    { "name": "rules", "description": "Manage coding rules with CRUD and overrides" },
-    { "name": "knowledge", "description": "Access architecture patterns and solutions" },
-    { "name": "cursor", "description": "Browse cursor.directory community rules" },
-    { "name": "docs", "description": "Fetch and cache web documentation" },
-    { "name": "config", "description": "Save/load project configurations" },
-    { "name": "custom_rule", "description": "Create custom analysis rules" },
-    { "name": "context", "description": "View current loaded context" },
-    { "name": "help", "description": "Get help about StackGuide tools" }
-  ],
-  "prompts": [
-    { "name": "tdd_intake", "description": "Activate Task Intake agent for ticket processing" },
-    { "name": "tdd_plan", "description": "Activate TDD Planner for test-first planning" },
-    { "name": "tdd_implement", "description": "Activate TDD Implementer for Red-Green-Refactor" },
-    { "name": "tdd_verify", "description": "Activate Verifier for quality gate" },
-    { "name": "tdd_release", "description": "Activate Releaser for safe publishing" },
-    { "name": "welcome", "description": "Interactive setup wizard" },
-    { "name": "configure_project", "description": "Smart project configuration" },
-    { "name": "code_review", "description": "Review code against active rules" },
-    { "name": "apply_patterns", "description": "Apply architecture patterns" }
   ]
 }
