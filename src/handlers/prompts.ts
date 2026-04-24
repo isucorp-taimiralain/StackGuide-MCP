@@ -3,10 +3,16 @@
  * @version 3.4.0
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { ProjectType, SUPPORTED_PROJECTS } from '../config/types.js';
 import * as autoDetect from '../services/autoDetect.js';
 import { ServerState } from './types.js';
 import { safeFetch } from '../utils/safeFetch.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const WORKFLOW_ROOT = path.resolve(__dirname, '../../data/workflows/tdd');
 
 // ============================================================================
 // Types
@@ -73,6 +79,39 @@ export function listAllPrompts(): PromptInfo[] {
       description: 'Apply architecture patterns from knowledge base',
       arguments: [
         { name: 'task', description: 'Task or feature to implement', required: true }
+      ]
+    },
+    {
+      name: 'tdd_intake',
+      description: 'Activate the Task Intake agent — reads a ticket and produces a brief for the Planner',
+      arguments: [
+        { name: 'ticketKey', description: 'Ticket identifier (e.g. PROJ-123)', required: true }
+      ]
+    },
+    {
+      name: 'tdd_plan',
+      description: 'Activate the TDD Planner agent — produces a test-first plan with 3 tests for a vertical slice',
+      arguments: [
+        { name: 'brief', description: 'Brief from Intake or direct task description', required: true }
+      ]
+    },
+    {
+      name: 'tdd_implement',
+      description: 'Activate the TDD Implementer agent — executes Red → Green → Refactor for the planned tests',
+      arguments: [
+        { name: 'plan', description: 'Approved plan from the TDD Planner', required: true }
+      ]
+    },
+    {
+      name: 'tdd_verify',
+      description: 'Activate the Verifier agent — runs the quality gate checklist before the MR',
+      arguments: []
+    },
+    {
+      name: 'tdd_release',
+      description: 'Activate the Releaser agent — safely tags, generates release notes and publishes',
+      arguments: [
+        { name: 'version', description: 'Target version (e.g. v1.2.0)', required: true }
       ]
     }
   ];
@@ -263,6 +302,106 @@ Please:
 }
 
 // ============================================================================
+// TDD Workflow Prompts (lazy-loaded from data/workflows/tdd)
+// ============================================================================
+
+function loadWorkflowFile(category: string, name: string): string {
+  const dir = path.join(WORKFLOW_ROOT, category);
+  if (!fs.existsSync(dir)) return '';
+
+  const files = fs.readdirSync(dir);
+  const match = files.find(f => {
+    const baseName = f.replace(/\.(md|sh)$/, '');
+    return baseName === name || baseName.endsWith(`-${name}`) || baseName.startsWith(`${name}-`);
+  });
+
+  if (!match) return '';
+  return fs.readFileSync(path.join(dir, match), 'utf-8');
+}
+
+function handleTddIntakePrompt(args: Record<string, unknown>): PromptResult {
+  const ticketKey = (args.ticketKey as string) || '<TICKET-KEY>';
+  const agentDef = loadWorkflowFile('agents', 'task-intake');
+  const skillDef = loadWorkflowFile('skills', 'traceability');
+
+  return {
+    messages: [{
+      role: 'user',
+      content: {
+        type: 'text',
+        text: `# Task Intake Agent\n\n${agentDef}\n\n---\n\n## Traceability Skill\n\n${skillDef}\n\n---\n\nTicket: **${ticketKey}**\n\nRead the ticket (read-only), detect gaps, and produce the normalized brief for the Planner.\nWhen done, close with: "Brief ready, handing off to TDD Planner".`
+      }
+    }]
+  };
+}
+
+function handleTddPlanPrompt(args: Record<string, unknown>): PromptResult {
+  const brief = (args.brief as string) || '<paste brief here>';
+  const agentDef = loadWorkflowFile('agents', 'tdd-planner');
+  const tddCore = loadWorkflowFile('skills', 'tdd-core');
+
+  return {
+    messages: [{
+      role: 'user',
+      content: {
+        type: 'text',
+        text: `# TDD Planner Agent\n\n${agentDef}\n\n---\n\n## TDD Core Skill\n\n${tddCore}\n\n---\n\n## Brief\n\n${brief}\n\nProduce a TDD Plan with vertical slice, observable criteria and exactly 3 tests.\nDo not write code. When done, close with: "TDD Plan ready, handing off to TDD Implementer".`
+      }
+    }]
+  };
+}
+
+function handleTddImplementPrompt(args: Record<string, unknown>): PromptResult {
+  const plan = (args.plan as string) || '<paste approved plan here>';
+  const agentDef = loadWorkflowFile('agents', 'tdd-implementer');
+  const tddCore = loadWorkflowFile('skills', 'tdd-core');
+  const mrConventions = loadWorkflowFile('skills', 'mr-conventions');
+
+  return {
+    messages: [{
+      role: 'user',
+      content: {
+        type: 'text',
+        text: `# TDD Implementer Agent\n\n${agentDef}\n\n---\n\n## TDD Core Skill\n\n${tddCore}\n\n---\n\n## MR Conventions Skill\n\n${mrConventions}\n\n---\n\n## Approved Plan\n\n${plan}\n\nExecute Red → Green → Refactor for each of the 3 tests.\nWhen done, close with: "Cycle complete, handing off to Verifier".`
+      }
+    }]
+  };
+}
+
+function handleTddVerifyPrompt(): PromptResult {
+  const agentDef = loadWorkflowFile('agents', 'verifier');
+  const tddCore = loadWorkflowFile('skills', 'tdd-core');
+  const mrConventions = loadWorkflowFile('skills', 'mr-conventions');
+  const traceability = loadWorkflowFile('skills', 'traceability');
+
+  return {
+    messages: [{
+      role: 'user',
+      content: {
+        type: 'text',
+        text: `# Verifier Agent\n\n${agentDef}\n\n---\n\n## TDD Core Skill\n\n${tddCore}\n\n---\n\n## MR Conventions\n\n${mrConventions}\n\n---\n\n## Traceability\n\n${traceability}\n\n---\n\nRun the full quality gate checklist and produce the Verifier Report.\nIf anything fails: hand back to Implementer. If green: "Verifier Report: ✅ — MR ready to open".`
+      }
+    }]
+  };
+}
+
+function handleTddReleasePrompt(args: Record<string, unknown>): PromptResult {
+  const version = (args.version as string) || 'vX.Y.Z';
+  const agentDef = loadWorkflowFile('agents', 'releaser');
+  const mrConventions = loadWorkflowFile('skills', 'mr-conventions');
+
+  return {
+    messages: [{
+      role: 'user',
+      content: {
+        type: 'text',
+        text: `# Releaser Agent\n\n${agentDef}\n\n---\n\n## MR Conventions\n\n${mrConventions}\n\n---\n\nTarget version: **${version}**\n\nExecute the full release workflow: preflight → SemVer → notes → tag → publish.\nClose with: "Release ${version} published".`
+      }
+    }]
+  };
+}
+
+// ============================================================================
 // Router-based Prompt Handler
 // ============================================================================
 
@@ -280,6 +419,16 @@ export async function handlePrompt(
       return await handleCodeReviewPrompt(args, state);
     case 'apply_patterns':
       return handleApplyPatternsPrompt(args, state);
+    case 'tdd_intake':
+      return handleTddIntakePrompt(args);
+    case 'tdd_plan':
+      return handleTddPlanPrompt(args);
+    case 'tdd_implement':
+      return handleTddImplementPrompt(args);
+    case 'tdd_verify':
+      return handleTddVerifyPrompt();
+    case 'tdd_release':
+      return handleTddReleasePrompt(args);
     default:
       return {
         messages: [{

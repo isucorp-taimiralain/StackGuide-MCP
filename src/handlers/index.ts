@@ -15,5 +15,7 @@ export { handleHelp } from './help.js';
 export { handleGenerate } from './generate.js';
 export { handleHealth } from './health.js';
 export { handleAnalyze } from './analyze.js';
+export { handleWorkflow } from './workflow.js';
+export { handleInit } from './init.js';
 
 export * from './types.js';

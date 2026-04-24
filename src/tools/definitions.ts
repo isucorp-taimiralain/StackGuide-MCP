@@ -322,6 +322,58 @@ export const toolDefinitions = [
     }
   },
 
+  // ==================== WORKFLOW (1) - NEW in v4.0.0 ====================
+  {
+    name: 'workflow',
+    description: 'TDD agentic workflow with lazy loading. Load agents, skills, hooks and commands on demand to save tokens. Five roles: Intake → Planner → Implementer → Verifier → Releaser.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: 'Action to perform',
+          enum: ['list', 'agent', 'skill', 'command', 'hook']
+        },
+        name: {
+          type: 'string',
+          description: 'Name of the item to load (e.g. "tdd-planner", "tdd-core", "verify")'
+        },
+        category: {
+          type: 'string',
+          description: 'Filter list by category',
+          enum: ['agents', 'skills', 'hooks', 'commands']
+        }
+      },
+      required: []
+    }
+  },
+
+  // ==================== INIT (1) - NEW in v4.0.0 ====================
+  {
+    name: 'init',
+    description: 'Initialize a project with the StackGuide TDD workflow. Auto-detects your stack and scaffolds a .stackguide/ directory with only the relevant agents, skills and hooks.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: 'Action to perform',
+          enum: ['detect', 'full', 'status']
+        },
+        path: {
+          type: 'string',
+          description: 'Project path (default: current directory)'
+        },
+        type: {
+          type: 'string',
+          description: 'Force a project type instead of auto-detecting',
+          enum: Object.keys(SUPPORTED_PROJECTS)
+        }
+      },
+      required: []
+    }
+  },
+
   // ==================== PROJECT INTELLIGENCE (1) - NEW in v3.3.0 ====================
   {
     name: 'analyze',

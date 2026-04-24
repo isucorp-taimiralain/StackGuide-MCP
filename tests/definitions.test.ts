@@ -115,11 +115,12 @@ describe('tool definitions', () => {
       }
     });
 
-    it('should have 13 tools', () => {
+    it('should have 15 tools', () => {
       // Core: setup, review, rules, knowledge, context
       // Utility: cursor, docs, config, custom_rule, help
       // Advanced: generate, health, analyze
-      expect(toolDefinitions.length).toBe(13);
+      // Workflow: workflow, init
+      expect(toolDefinitions.length).toBe(15);
     });
   });
 });
