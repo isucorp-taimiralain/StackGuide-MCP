@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * StackGuide MCP Server v4.1.2
+ * StackGuide MCP Server v4.1.3
  * 
  * A Model Context Protocol server for dynamic language and framework context loading.
  * Compatible with Cursor and GitHub Copilot.
@@ -73,7 +73,7 @@ const serverState: ServerState = {
 const server = new Server(
   {
     name: 'stackguide-mcp',
-    version: '4.1.2',
+    version: '4.1.3',
   },
   {
     capabilities: {
