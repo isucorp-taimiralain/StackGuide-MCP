@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * StackGuide MCP Server v4.0.0
+ * StackGuide MCP Server v4.1.0
  * 
  * A Model Context Protocol server for dynamic language and framework context loading.
  * Compatible with Cursor and GitHub Copilot.
@@ -50,6 +50,7 @@ import {
   handleAnalyze,
   handleWorkflow,
   handleInit,
+  handleAgent,
   ServerState,
   textResponse
 } from './handlers/index.js';
@@ -72,7 +73,7 @@ const serverState: ServerState = {
 const server = new Server(
   {
     name: 'stackguide-mcp',
-    version: '4.0.0',
+    version: '4.1.0',
   },
   {
     capabilities: {
@@ -100,7 +101,8 @@ const toolRouter = createToolRouter()
   .register('health', handleHealth)
   .register('analyze', handleAnalyze)
   .register('workflow', handleWorkflow)
-  .register('init', handleInit);
+  .register('init', handleInit)
+  .register('agent', handleAgent);
 
 // ==================== TOOLS ====================
 

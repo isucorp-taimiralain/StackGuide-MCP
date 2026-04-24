@@ -374,6 +374,47 @@ export const toolDefinitions = [
     }
   },
 
+  // ==================== AGENT (1) - NEW in v4.1.0 ====================
+  {
+    name: 'agent',
+    description: 'Active agent workflow actions that execute real work: intake (ticket read), plan (TDD plan), verify (run tests/lint/build + checks), release (CI + release notes/tag/PR).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: 'Active workflow action',
+          enum: ['status', 'intake', 'plan', 'verify', 'release']
+        },
+        path: {
+          type: 'string',
+          description: 'Project path (default: current directory)'
+        },
+        ticket: {
+          type: 'string',
+          description: 'Ticket key for intake/plan actions (e.g. PROJ-123)'
+        },
+        brief: {
+          type: 'string',
+          description: 'Structured or plain brief text for planning'
+        },
+        version: {
+          type: 'string',
+          description: 'Target release version for release action (e.g. v1.2.0)'
+        },
+        createTag: {
+          type: 'boolean',
+          description: 'If true, release action creates annotated git tag when CI is green'
+        },
+        createPullRequest: {
+          type: 'boolean',
+          description: 'If true, release action opens PR/MR when provider is configured'
+        }
+      },
+      required: []
+    }
+  },
+
   // ==================== PROJECT INTELLIGENCE (1) - NEW in v3.3.0 ====================
   {
     name: 'analyze',

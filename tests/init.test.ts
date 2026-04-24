@@ -135,6 +135,32 @@ describe('init handler', () => {
       const commands = fs.readdirSync(commandsDir);
       expect(commands.length).toBe(5);
     });
+
+    it('should generate .stackguide/config.json', async () => {
+      fs.writeFileSync(
+        path.join(tmpDir, 'package.json'),
+        JSON.stringify({
+          scripts: {
+            test: 'vitest run',
+            lint: 'eslint .',
+            build: 'tsc -b',
+          },
+        })
+      );
+
+      const result = await handleInit({ action: 'full', path: tmpDir }, mockState);
+      const data = parseResponse(result) as Record<string, unknown>;
+      expect(data).toHaveProperty('configPath');
+
+      const configPath = path.join(tmpDir, '.stackguide', 'config.json');
+      expect(fs.existsSync(configPath)).toBe(true);
+
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as Record<string, unknown>;
+      expect(config).toHaveProperty('tracker');
+      expect(config).toHaveProperty('vcs');
+      expect(config).toHaveProperty('testing');
+      expect(config).toHaveProperty('workflow');
+    });
   });
 
   describe('status action', () => {

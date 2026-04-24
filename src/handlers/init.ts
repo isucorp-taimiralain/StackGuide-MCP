@@ -7,9 +7,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { textResponse, jsonResponse, errorResponse, ToolResponse } from './types.js';
+import { jsonResponse, errorResponse, ToolResponse } from './types.js';
 import { ServerState } from './types.js';
 import { detectProjectType, DetectionResult } from '../services/autoDetect.js';
+import {
+  generateAgentProjectConfig,
+  getAgentConfigPath,
+  readAgentProjectConfig,
+  writeAgentProjectConfig,
+} from '../config/agentConfig.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKFLOW_ROOT = path.resolve(__dirname, '../../data/workflows/tdd');
@@ -142,6 +148,13 @@ export async function handleInit(
   switch (action) {
     case 'detect': {
       const detection = detectProjectType(projectPath);
+      const detectionConfidence = detection.detected ? detection.confidence : 'unknown';
+      const previewConfig = generateAgentProjectConfig(projectPath, {
+        projectType: detection.projectType,
+        confidence: detectionConfidence,
+        source: detection.detected ? 'auto' : 'manual',
+      });
+
       return jsonResponse({
         detected: detection.detected,
         projectType: detection.projectType,
@@ -149,6 +162,12 @@ export async function handleInit(
         languages: detection.languages,
         frameworks: detection.frameworks,
         indicators: detection.indicators,
+        configPreview: {
+          tracker: previewConfig.tracker,
+          vcs: previewConfig.vcs,
+          testing: previewConfig.testing,
+        },
+        configPath: getAgentConfigPath(projectPath),
         message: detection.detected
           ? `Detected ${detection.projectType} (${detection.confidence} confidence). Run init action:"full" to scaffold.`
           : 'Could not auto-detect project type. You can specify one with init action:"full" type:"react-node".',
@@ -174,12 +193,20 @@ export async function handleInit(
       }
 
       const result = scaffoldProject(projectPath, detection);
+      const generatedConfig = generateAgentProjectConfig(projectPath, {
+        projectType: detection?.projectType || null,
+        confidence: forcedType ? 'manual' : (detection?.confidence || 'unknown'),
+        source: forcedType ? 'manual' : 'auto',
+      });
+      const configPath = writeAgentProjectConfig(projectPath, generatedConfig);
 
       return jsonResponse({
         success: true,
         projectPath,
         stackType: result.stackType,
         directory: '.stackguide/',
+        configPath,
+        config: generatedConfig,
         files: {
           copied: result.copied,
           skipped: result.skipped,
@@ -187,7 +214,8 @@ export async function handleInit(
         totalFiles: result.copied.length,
         nextSteps: [
           'Review the generated `.stackguide/` directory.',
-          'Use `workflow action:"agent" name:"tdd-planner"` to start planning with lazy loading.',
+          'Review and adjust `.stackguide/config.json` for tracker, VCS and test commands.',
+          'Use `agent action:"intake" ticket:"PROJ-123"` to run active workflow actions.',
           'Commit `.stackguide/` to your repo so the whole team benefits.',
           result.stackType
             ? `Stack-specific skills for ${result.stackType} have been included.`
@@ -210,11 +238,16 @@ export async function handleInit(
       for (const cat of categories) {
         structure[cat] = files(path.join(sgDir, cat));
       }
+      const configPath = getAgentConfigPath(projectPath);
+      const config = readAgentProjectConfig(projectPath);
 
       return jsonResponse({
         initialized: true,
         path: sgDir,
         structure,
+        configPath,
+        configExists: !!config,
+        config,
       });
     }
 

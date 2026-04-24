@@ -17,5 +17,6 @@ export { handleHealth } from './health.js';
 export { handleAnalyze } from './analyze.js';
 export { handleWorkflow } from './workflow.js';
 export { handleInit } from './init.js';
+export { handleAgent } from './agent.js';
 
 export * from './types.js';

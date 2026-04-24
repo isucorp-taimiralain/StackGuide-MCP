@@ -3,16 +3,10 @@
  * @version 3.4.0
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
 import { ProjectType, SUPPORTED_PROJECTS } from '../config/types.js';
 import * as autoDetect from '../services/autoDetect.js';
 import { ServerState } from './types.js';
 import { safeFetch } from '../utils/safeFetch.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const WORKFLOW_ROOT = path.resolve(__dirname, '../../data/workflows/tdd');
 
 // ============================================================================
 // Types
@@ -302,34 +296,26 @@ Please:
 }
 
 // ============================================================================
-// TDD Workflow Prompts (lazy-loaded from data/workflows/tdd)
+// TDD Workflow Prompts (active agent tool)
 // ============================================================================
-
-function loadWorkflowFile(category: string, name: string): string {
-  const dir = path.join(WORKFLOW_ROOT, category);
-  if (!fs.existsSync(dir)) return '';
-
-  const files = fs.readdirSync(dir);
-  const match = files.find(f => {
-    const baseName = f.replace(/\.(md|sh)$/, '');
-    return baseName === name || baseName.endsWith(`-${name}`) || baseName.startsWith(`${name}-`);
-  });
-
-  if (!match) return '';
-  return fs.readFileSync(path.join(dir, match), 'utf-8');
-}
 
 function handleTddIntakePrompt(args: Record<string, unknown>): PromptResult {
   const ticketKey = (args.ticketKey as string) || '<TICKET-KEY>';
-  const agentDef = loadWorkflowFile('agents', 'task-intake');
-  const skillDef = loadWorkflowFile('skills', 'traceability');
 
   return {
     messages: [{
       role: 'user',
       content: {
         type: 'text',
-        text: `# Task Intake Agent\n\n${agentDef}\n\n---\n\n## Traceability Skill\n\n${skillDef}\n\n---\n\nTicket: **${ticketKey}**\n\nRead the ticket (read-only), detect gaps, and produce the normalized brief for the Planner.\nWhen done, close with: "Brief ready, handing off to TDD Planner".`
+        text: `Use the active StackGuide workflow.
+
+Step 1: Call the MCP tool:
+- agent action:"intake" ticket:"${ticketKey}"
+
+Step 2: Use the returned structured brief to identify missing details (if any gaps are reported).
+Step 3: Continue with prompt tdd_plan and pass the normalized brief.
+
+Do not load passive role markdown; use the active tool output as the source of truth.`
       }
     }]
   };
@@ -337,15 +323,25 @@ function handleTddIntakePrompt(args: Record<string, unknown>): PromptResult {
 
 function handleTddPlanPrompt(args: Record<string, unknown>): PromptResult {
   const brief = (args.brief as string) || '<paste brief here>';
-  const agentDef = loadWorkflowFile('agents', 'tdd-planner');
-  const tddCore = loadWorkflowFile('skills', 'tdd-core');
 
   return {
     messages: [{
       role: 'user',
       content: {
         type: 'text',
-        text: `# TDD Planner Agent\n\n${agentDef}\n\n---\n\n## TDD Core Skill\n\n${tddCore}\n\n---\n\n## Brief\n\n${brief}\n\nProduce a TDD Plan with vertical slice, observable criteria and exactly 3 tests.\nDo not write code. When done, close with: "TDD Plan ready, handing off to TDD Implementer".`
+        text: `Create a test-first implementation plan using active tooling.
+
+Step 1: Call:
+- agent action:"plan" brief:"${brief.replace(/"/g, '\\"')}"
+
+Step 2: Use the returned JSON plan:
+- Keep exactly 3 tests in the plan.
+- Respect branch proposal and conventions.
+- Keep the scope to one vertical slice.
+
+Step 3: If the plan is approved, implement Red -> Green -> Refactor and then run tdd_verify.
+
+Do not paste large methodology documents; rely on tool output.`
       }
     }]
   };
@@ -353,33 +349,45 @@ function handleTddPlanPrompt(args: Record<string, unknown>): PromptResult {
 
 function handleTddImplementPrompt(args: Record<string, unknown>): PromptResult {
   const plan = (args.plan as string) || '<paste approved plan here>';
-  const agentDef = loadWorkflowFile('agents', 'tdd-implementer');
-  const tddCore = loadWorkflowFile('skills', 'tdd-core');
-  const mrConventions = loadWorkflowFile('skills', 'mr-conventions');
 
   return {
     messages: [{
       role: 'user',
       content: {
         type: 'text',
-        text: `# TDD Implementer Agent\n\n${agentDef}\n\n---\n\n## TDD Core Skill\n\n${tddCore}\n\n---\n\n## MR Conventions Skill\n\n${mrConventions}\n\n---\n\n## Approved Plan\n\n${plan}\n\nExecute Red → Green → Refactor for each of the 3 tests.\nWhen done, close with: "Cycle complete, handing off to Verifier".`
+        text: `Implement the approved plan.
+
+Approved plan:
+${plan}
+
+Execution requirements:
+1) Run Red -> Green -> Refactor for each of the 3 tests.
+2) Keep commits traceable to the ticket and follow conventional commits.
+3) After implementation, call:
+- agent action:"verify"
+
+Use the verifier output as the release gate.`
       }
     }]
   };
 }
 
 function handleTddVerifyPrompt(): PromptResult {
-  const agentDef = loadWorkflowFile('agents', 'verifier');
-  const tddCore = loadWorkflowFile('skills', 'tdd-core');
-  const mrConventions = loadWorkflowFile('skills', 'mr-conventions');
-  const traceability = loadWorkflowFile('skills', 'traceability');
-
   return {
     messages: [{
       role: 'user',
       content: {
         type: 'text',
-        text: `# Verifier Agent\n\n${agentDef}\n\n---\n\n## TDD Core Skill\n\n${tddCore}\n\n---\n\n## MR Conventions\n\n${mrConventions}\n\n---\n\n## Traceability\n\n${traceability}\n\n---\n\nRun the full quality gate checklist and produce the Verifier Report.\nIf anything fails: hand back to Implementer. If green: "Verifier Report: ✅ — MR ready to open".`
+        text: `Run the active quality gate.
+
+Call:
+- agent action:"verify"
+
+Interpret the Verifier report:
+- If blockers exist, fix and run verify again.
+- If pass=true, proceed to release or MR creation.
+
+The tool output is authoritative for tests/lint/build, branch convention, TDD budget and quality score.`
       }
     }]
   };
@@ -387,15 +395,21 @@ function handleTddVerifyPrompt(): PromptResult {
 
 function handleTddReleasePrompt(args: Record<string, unknown>): PromptResult {
   const version = (args.version as string) || 'vX.Y.Z';
-  const agentDef = loadWorkflowFile('agents', 'releaser');
-  const mrConventions = loadWorkflowFile('skills', 'mr-conventions');
 
   return {
     messages: [{
       role: 'user',
       content: {
         type: 'text',
-        text: `# Releaser Agent\n\n${agentDef}\n\n---\n\n## MR Conventions\n\n${mrConventions}\n\n---\n\nTarget version: **${version}**\n\nExecute the full release workflow: preflight → SemVer → notes → tag → publish.\nClose with: "Release ${version} published".`
+        text: `Run release preflight and notes generation with active tooling.
+
+Call:
+- agent action:"release" version:"${version}"
+
+Optional:
+- agent action:"release" version:"${version}" createTag:true createPullRequest:true
+
+Only execute tag/PR creation when CI is green and verifier checks are passing.`
       }
     }]
   };

@@ -51,6 +51,7 @@ describe('tool definitions', () => {
       expect(toolNames).toContain('cursor');
       expect(toolNames).toContain('docs');
       expect(toolNames).toContain('config');
+      expect(toolNames).toContain('agent');
     });
 
     it('setup tool should have path and type properties', () => {
@@ -115,12 +116,12 @@ describe('tool definitions', () => {
       }
     });
 
-    it('should have 15 tools', () => {
+    it('should have 16 tools', () => {
       // Core: setup, review, rules, knowledge, context
       // Utility: cursor, docs, config, custom_rule, help
       // Advanced: generate, health, analyze
-      // Workflow: workflow, init
-      expect(toolDefinitions.length).toBe(15);
+      // Workflow: workflow, init, agent
+      expect(toolDefinitions.length).toBe(16);
     });
   });
 });
