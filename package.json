@@ -1,6 +1,6 @@
 {
   "name": "@stackguide/mcp-server",
-  "version": "4.1.1",
+  "version": "4.1.2",
   "description": "MCP Server for dynamic language and framework context loading - Compatible with Cursor and GitHub Copilot",
   "main": "dist/index.js",
   "bin": {
@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "prepare": "pnpm run build",
-    "lint": "tsc --noEmit"
+    "guard:repo": "node ./scripts/check-forbidden-local-artifacts.mjs",
+    "lint": "pnpm run guard:repo && tsc --noEmit"
   },
   "keywords": [
     "mcp",
