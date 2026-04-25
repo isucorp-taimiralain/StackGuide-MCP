@@ -322,6 +322,99 @@ export const toolDefinitions = [
     }
   },
 
+  // ==================== WORKFLOW (1) - NEW in v4.0.0 ====================
+  {
+    name: 'workflow',
+    description: 'TDD agentic workflow with lazy loading. Load agents, skills, hooks and commands on demand to save tokens. Five roles: Intake → Planner → Implementer → Verifier → Releaser.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: 'Action to perform',
+          enum: ['list', 'agent', 'skill', 'command', 'hook']
+        },
+        name: {
+          type: 'string',
+          description: 'Name of the item to load (e.g. "tdd-planner", "tdd-core", "verify")'
+        },
+        category: {
+          type: 'string',
+          description: 'Filter list by category',
+          enum: ['agents', 'skills', 'hooks', 'commands']
+        }
+      },
+      required: []
+    }
+  },
+
+  // ==================== INIT (1) - NEW in v4.0.0 ====================
+  {
+    name: 'init',
+    description: 'Initialize a project with the StackGuide TDD workflow. Auto-detects your stack and scaffolds a .stackguide/ directory with only the relevant agents, skills and hooks.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: 'Action to perform',
+          enum: ['detect', 'full', 'status']
+        },
+        path: {
+          type: 'string',
+          description: 'Project path (default: current directory)'
+        },
+        type: {
+          type: 'string',
+          description: 'Force a project type instead of auto-detecting',
+          enum: Object.keys(SUPPORTED_PROJECTS)
+        }
+      },
+      required: []
+    }
+  },
+
+  // ==================== AGENT (1) - NEW in v4.1.0 ====================
+  {
+    name: 'agent',
+    description: 'Active agent workflow actions that execute real work: intake (ticket read), plan (TDD plan), verify (run tests/lint/build + checks), release (CI + release notes/tag/PR).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: 'Active workflow action',
+          enum: ['status', 'intake', 'plan', 'verify', 'release']
+        },
+        path: {
+          type: 'string',
+          description: 'Project path (default: current directory)'
+        },
+        ticket: {
+          type: 'string',
+          description: 'Ticket key for intake/plan actions (e.g. PROJ-123)'
+        },
+        brief: {
+          type: 'string',
+          description: 'Structured or plain brief text for planning'
+        },
+        version: {
+          type: 'string',
+          description: 'Target release version for release action (e.g. v1.2.0)'
+        },
+        createTag: {
+          type: 'boolean',
+          description: 'If true, release action creates annotated git tag when CI is green'
+        },
+        createPullRequest: {
+          type: 'boolean',
+          description: 'If true, release action opens PR/MR when provider is configured'
+        }
+      },
+      required: []
+    }
+  },
+
   // ==================== PROJECT INTELLIGENCE (1) - NEW in v3.3.0 ====================
   {
     name: 'analyze',

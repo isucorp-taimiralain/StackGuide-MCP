@@ -1,12 +1,16 @@
 /**
  * Tests for Health Handler - Phase 6
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { handleHealth } from '../../src/handlers/health.js';
 import { ServerState } from '../../src/handlers/types.js';
 
 describe('handleHealth', () => {
   let mockState: ServerState;
+  const tempDirs: string[] = [];
 
   beforeEach(() => {
     mockState = {
@@ -15,6 +19,18 @@ describe('handleHealth', () => {
       loadedRules: [],
       loadedKnowledge: []
     };
+  });
+
+  function makeTempDir(): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'stackguide-health-test-'));
+    tempDirs.push(dir);
+    return dir;
+  }
+
+  afterEach(() => {
+    for (const dir of tempDirs.splice(0, tempDirs.length)) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   describe('basic functionality', () => {
@@ -144,6 +160,46 @@ describe('handleHealth', () => {
       const hasSuggestions = data.categories.some((c: any) => c.suggestions && c.suggestions.length > 0);
       
       expect(hasSuggestions).toBe(true);
+    });
+  });
+
+  describe('history hardening', () => {
+    it('should persist health history with checksum', async () => {
+      const projectPath = makeTempDir();
+
+      await handleHealth({ detailed: false, path: projectPath, saveHistory: true }, mockState);
+
+      const historyPath = path.join(projectPath, '.stackguide', 'health-history.json');
+      expect(fs.existsSync(historyPath)).toBe(true);
+
+      const history = JSON.parse(fs.readFileSync(historyPath, 'utf-8')) as Record<string, unknown>;
+      expect(history.entries).toBeInstanceOf(Array);
+      expect(typeof history.checksum).toBe('string');
+    });
+
+    it('should recover from tampered history checksum', async () => {
+      const projectPath = makeTempDir();
+      const historyPath = path.join(projectPath, '.stackguide', 'health-history.json');
+
+      await handleHealth({ detailed: false, path: projectPath, saveHistory: true }, mockState);
+      const initialHistory = JSON.parse(fs.readFileSync(historyPath, 'utf-8')) as {
+        entries: Array<Record<string, unknown>>;
+        checksum?: string;
+      };
+
+      initialHistory.entries[0] = {
+        ...initialHistory.entries[0],
+        score: 999,
+      };
+      fs.writeFileSync(historyPath, JSON.stringify(initialHistory, null, 2));
+
+      await handleHealth({ detailed: false, path: projectPath, saveHistory: true }, mockState);
+      const recovered = JSON.parse(fs.readFileSync(historyPath, 'utf-8')) as {
+        entries: Array<{ score: number }>;
+      };
+
+      expect(recovered.entries.length).toBe(1);
+      expect(recovered.entries[0].score).toBeLessThanOrEqual(100);
     });
   });
 });

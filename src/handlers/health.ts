@@ -10,6 +10,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import { ServerState, ToolResponse, jsonResponse, textResponse } from './types.js';
 import { logger } from '../utils/logger.js';
 import { analyzeCode, AnalysisResult } from '../services/codeAnalyzer.js';
@@ -56,10 +57,161 @@ interface HealthHistoryEntry {
 interface HealthHistory {
   projectPath: string;
   entries: HealthHistoryEntry[];
+  checksum?: string;
 }
 
 const HISTORY_FILE = '.stackguide/health-history.json';
 const MAX_HISTORY_ENTRIES = 100;
+const MAX_HEALTH_HISTORY_FILE_SIZE_BYTES = 512 * 1024; // 512 KB
+const HEALTH_DIR_MODE = 0o700;
+const HEALTH_FILE_MODE = 0o600;
+const RESERVED_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+const INTEGRITY_ENV_KEY = 'STACKGUIDE_INTEGRITY_KEY';
+
+function isPathInside(basePath: string, targetPath: string): boolean {
+  const resolvedBase = path.resolve(basePath);
+  const resolvedTarget = path.resolve(targetPath);
+  return resolvedTarget === resolvedBase || resolvedTarget.startsWith(`${resolvedBase}${path.sep}`);
+}
+
+function isSymbolicLink(targetPath: string): boolean {
+  try {
+    return fs.lstatSync(targetPath).isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map(item => stableStringify(item)).join(',')}]`;
+  }
+
+  const record = value as Record<string, unknown>;
+  const keys = Object.keys(record).sort();
+  const pairs = keys.map(key => `${JSON.stringify(key)}:${stableStringify(record[key])}`);
+  return `{${pairs.join(',')}}`;
+}
+
+function sanitizeHistoryEntry(raw: unknown): HealthHistoryEntry | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const entry = raw as {
+    timestamp?: unknown;
+    score?: unknown;
+    grade?: unknown;
+    categories?: unknown;
+  };
+
+  if (
+    typeof entry.timestamp !== 'string' ||
+    Number.isNaN(Date.parse(entry.timestamp)) ||
+    typeof entry.score !== 'number' ||
+    !Number.isFinite(entry.score) ||
+    typeof entry.grade !== 'string' ||
+    !['A', 'B', 'C', 'D', 'F'].includes(entry.grade)
+  ) {
+    return null;
+  }
+
+  const categories: Record<string, number> = {};
+  if (entry.categories && typeof entry.categories === 'object') {
+    for (const [name, score] of Object.entries(entry.categories as Record<string, unknown>)) {
+      if (
+        !name ||
+        name.length > 120 ||
+        RESERVED_KEYS.has(name) ||
+        typeof score !== 'number' ||
+        !Number.isFinite(score)
+      ) {
+        continue;
+      }
+      categories[name] = Math.max(0, Math.min(100, Math.round(score)));
+    }
+  }
+
+  return {
+    timestamp: entry.timestamp,
+    score: Math.max(0, Math.min(100, Math.round(entry.score))),
+    grade: entry.grade as 'A' | 'B' | 'C' | 'D' | 'F',
+    categories,
+  };
+}
+
+function sanitizeHealthHistory(raw: unknown, projectPath: string): HealthHistory {
+  if (!raw || typeof raw !== 'object') {
+    return { projectPath, entries: [] };
+  }
+
+  const input = raw as {
+    projectPath?: unknown;
+    entries?: unknown;
+    checksum?: unknown;
+  };
+
+  const entries: HealthHistoryEntry[] = [];
+  if (Array.isArray(input.entries)) {
+    for (const rawEntry of input.entries) {
+      const entry = sanitizeHistoryEntry(rawEntry);
+      if (entry) {
+        entries.push(entry);
+      }
+    }
+  }
+
+  return {
+    projectPath: typeof input.projectPath === 'string' ? input.projectPath : projectPath,
+    entries: entries.slice(-MAX_HISTORY_ENTRIES),
+    checksum: typeof input.checksum === 'string' ? input.checksum : undefined,
+  };
+}
+
+function computeHistoryChecksum(projectPath: string, entries: HealthHistoryEntry[]): string {
+  const payload = stableStringify({ projectPath, entries });
+  const secret = process.env[INTEGRITY_ENV_KEY];
+  if (secret) {
+    return `hmac:${crypto.createHmac('sha256', secret).update(payload).digest('hex')}`;
+  }
+  return `sha256:${crypto.createHash('sha256').update(payload).digest('hex')}`;
+}
+
+function timingSafeEqualString(a: string, b: string): boolean {
+  const aBuffer = Buffer.from(a);
+  const bBuffer = Buffer.from(b);
+  if (aBuffer.length !== bBuffer.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(aBuffer, bBuffer);
+}
+
+function verifyHistoryChecksum(checksum: string, projectPath: string, entries: HealthHistoryEntry[]): boolean {
+  const payload = stableStringify({ projectPath, entries });
+
+  if (checksum.startsWith('hmac:')) {
+    const secret = process.env[INTEGRITY_ENV_KEY];
+    if (!secret) {
+      logger.warn('HMAC health checksum found but STACKGUIDE_INTEGRITY_KEY is missing');
+      return false;
+    }
+    const expected = `hmac:${crypto.createHmac('sha256', secret).update(payload).digest('hex')}`;
+    return timingSafeEqualString(checksum, expected);
+  }
+
+  if (checksum.startsWith('sha256:')) {
+    const expected = `sha256:${crypto.createHash('sha256').update(payload).digest('hex')}`;
+    return timingSafeEqualString(checksum, expected);
+  }
+
+  // Backward compatibility with old plain SHA256 hex.
+  const legacyExpected = crypto.createHash('sha256').update(payload).digest('hex');
+  return timingSafeEqualString(checksum, legacyExpected);
+}
 
 function getGradeEmoji(grade: string): string {
   const emojis: Record<string, string> = {
@@ -79,9 +231,43 @@ function loadHealthHistory(projectPath: string): HealthHistory {
   const historyPath = path.join(projectPath, HISTORY_FILE);
   
   try {
+    if (!isPathInside(projectPath, historyPath)) {
+      logger.warn('Health history path escapes project boundary', { projectPath, historyPath });
+      return { projectPath, entries: [] };
+    }
+
+    if (isSymbolicLink(historyPath)) {
+      logger.warn('Refusing to read health history via symbolic link', { historyPath });
+      return { projectPath, entries: [] };
+    }
+
     if (fs.existsSync(historyPath)) {
+      const stats = fs.statSync(historyPath);
+      if (!stats.isFile()) {
+        logger.warn('Health history path is not a file', { historyPath });
+        return { projectPath, entries: [] };
+      }
+      if (stats.size > MAX_HEALTH_HISTORY_FILE_SIZE_BYTES) {
+        logger.warn('Health history file too large, ignoring', {
+          historyPath,
+          size: stats.size,
+          maxSize: MAX_HEALTH_HISTORY_FILE_SIZE_BYTES,
+        });
+        return { projectPath, entries: [] };
+      }
+
       const content = fs.readFileSync(historyPath, 'utf-8');
-      return JSON.parse(content);
+      const parsed = JSON.parse(content) as unknown;
+      const history = sanitizeHealthHistory(parsed, projectPath);
+
+      if (history.checksum) {
+        if (!verifyHistoryChecksum(history.checksum, history.projectPath, history.entries)) {
+          logger.warn('Health history checksum mismatch, resetting history', { historyPath });
+          return { projectPath, entries: [] };
+        }
+      }
+
+      return history;
     }
   } catch (error) {
     logger.debug('Failed to load health history', { error });
@@ -96,21 +282,42 @@ function loadHealthHistory(projectPath: string): HealthHistory {
 function saveHealthHistory(projectPath: string, history: HealthHistory): void {
   const historyPath = path.join(projectPath, HISTORY_FILE);
   const historyDir = path.dirname(historyPath);
+  const tempPath = `${historyPath}.${process.pid}.tmp`;
   
   try {
+    if (!isPathInside(projectPath, historyPath)) {
+      throw new Error('Health history path escapes project boundary');
+    }
+    if (isSymbolicLink(historyPath) || isSymbolicLink(historyDir)) {
+      throw new Error('Refusing to write health history through symbolic link');
+    }
+
     if (!fs.existsSync(historyDir)) {
-      fs.mkdirSync(historyDir, { recursive: true });
+      fs.mkdirSync(historyDir, { recursive: true, mode: HEALTH_DIR_MODE });
     }
     
-    // Limit history entries
-    if (history.entries.length > MAX_HISTORY_ENTRIES) {
-      history.entries = history.entries.slice(-MAX_HISTORY_ENTRIES);
-    }
+    const sanitized = sanitizeHealthHistory(history, projectPath);
+    const entries = sanitized.entries.slice(-MAX_HISTORY_ENTRIES);
+    const signed: HealthHistory = {
+      projectPath: sanitized.projectPath,
+      entries,
+      checksum: computeHistoryChecksum(sanitized.projectPath, entries),
+    };
     
-    fs.writeFileSync(historyPath, JSON.stringify(history, null, 2));
+    fs.writeFileSync(tempPath, JSON.stringify(signed, null, 2), { mode: HEALTH_FILE_MODE });
+    fs.renameSync(tempPath, historyPath);
+    fs.chmodSync(historyPath, HEALTH_FILE_MODE);
     logger.debug('Saved health history');
   } catch (error) {
     logger.debug('Failed to save health history', { error });
+  } finally {
+    try {
+      if (fs.existsSync(tempPath)) {
+        fs.rmSync(tempPath, { force: true });
+      }
+    } catch {
+      // best-effort cleanup
+    }
   }
 }
 
@@ -124,13 +331,17 @@ function addHistoryEntry(
   categories: HealthCategory[]
 ): void {
   const history = loadHealthHistory(projectPath);
+  const boundedScore = Math.max(0, Math.min(100, Math.round(score)));
+  const safeGrade = ['A', 'B', 'C', 'D', 'F'].includes(grade) ? grade : 'F';
   
   history.entries.push({
     timestamp: new Date().toISOString(),
-    score,
-    grade,
+    score: boundedScore,
+    grade: safeGrade,
     categories: Object.fromEntries(
-      categories.map(c => [c.name, c.score])
+      categories
+        .filter(c => !!c.name && !RESERVED_KEYS.has(c.name))
+        .map(c => [c.name, Math.max(0, Math.min(100, Math.round(c.score)))])
     )
   });
   

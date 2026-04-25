@@ -24,9 +24,14 @@ vi.mock('fs', async () => {
   return {
     ...actual,
     existsSync: vi.fn(),
+    lstatSync: vi.fn(),
+    statSync: vi.fn(),
     readFileSync: vi.fn(),
     writeFileSync: vi.fn(),
     mkdirSync: vi.fn(),
+    renameSync: vi.fn(),
+    chmodSync: vi.fn(),
+    rmSync: vi.fn(),
     unlinkSync: vi.fn(),
   };
 });
@@ -36,6 +41,13 @@ describe('Analysis Cache Service', () => {
   
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFs.lstatSync.mockReturnValue({
+      isSymbolicLink: () => false,
+    });
+    mockFs.statSync.mockReturnValue({
+      isFile: () => true,
+      size: 1024,
+    });
   });
 
   describe('computeFileHash', () => {
@@ -78,7 +90,7 @@ describe('Analysis Cache Service', () => {
         version: '1.0.0',
         entries: {
           'test.ts': {
-            hash: 'abc123',
+            hash: 'aaaaaaaaaaaaaaaa',
             result: {} as AnalysisResult,
             timestamp: Date.now(),
             version: '1.0.0'
@@ -102,6 +114,27 @@ describe('Analysis Cache Service', () => {
       mockFs.existsSync.mockReturnValue(true);
       mockFs.readFileSync.mockReturnValue(JSON.stringify(oldCache));
       
+      const cache = loadCache('/test/project');
+      expect(cache.entries).toEqual({});
+    });
+
+    it('should return empty cache on checksum mismatch', () => {
+      const tamperedCache = {
+        version: '1.0.0',
+        entries: {
+          'test.ts': {
+            hash: 'aaaaaaaaaaaaaaaa',
+            result: {} as AnalysisResult,
+            timestamp: Date.now(),
+            version: '1.0.0'
+          }
+        },
+        checksum: 'invalid-checksum'
+      };
+
+      mockFs.existsSync.mockReturnValue(true);
+      mockFs.readFileSync.mockReturnValue(JSON.stringify(tamperedCache));
+
       const cache = loadCache('/test/project');
       expect(cache.entries).toEqual({});
     });
@@ -222,6 +255,27 @@ describe('Analysis Cache Service', () => {
       // Invalidate
       manager.invalidate('test.ts');
       expect(manager.get('test.ts', content)).toBeNull();
+    });
+  });
+
+  describe('saveCache', () => {
+    it('should write cache atomically and set secure permissions', () => {
+      mockFs.existsSync.mockImplementation((target: string) => target.includes('.tmp'));
+
+      const cache = createEmptyCache();
+      setCachedResult(cache, 'test.ts', 'const x = 1;', {
+        file: 'test.ts',
+        language: 'typescript',
+        issues: [],
+        score: 100,
+        summary: { errors: 0, warnings: 0, info: 0, suggestions: 0 }
+      } as AnalysisResult);
+
+      saveCache('/test/project', cache);
+
+      expect(mockFs.writeFileSync).toHaveBeenCalled();
+      expect(mockFs.renameSync).toHaveBeenCalled();
+      expect(mockFs.chmodSync).toHaveBeenCalled();
     });
   });
 });

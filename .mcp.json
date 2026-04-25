@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "stackguide": {
+      "command": "npx",
+      "args": ["-y", "@stackguide/mcp-server"]
+    }
+  }
+}
