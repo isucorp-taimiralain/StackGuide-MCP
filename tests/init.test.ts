@@ -161,6 +161,33 @@ describe('init handler', () => {
       expect(config).toHaveProperty('testing');
       expect(config).toHaveProperty('workflow');
     });
+
+    it('should persist adaptive automation defaults and sync mcp templates', async () => {
+      const result = await handleInit({
+        action: 'full',
+        path: tmpDir,
+        model: 'gpt-5',
+        tokenMode: 'compact',
+        integrations: ['jira', 'gitlab'],
+        mcpSyncTargets: ['cursor', 'root'],
+        applyMcpTemplates: true,
+        jiraProjectKey: 'PROJ',
+        jiraIssueType: 'Task',
+      }, mockState);
+      const data = parseResponse(result) as Record<string, unknown>;
+
+      expect(data).toHaveProperty('success', true);
+      expect(data).toHaveProperty('mcpSync');
+
+      const configPath = path.join(tmpDir, '.stackguide', 'config.json');
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as Record<string, unknown>;
+      expect(config).toHaveProperty('automation');
+
+      const rootManifest = path.join(tmpDir, '.mcp.json');
+      const cursorManifest = path.join(tmpDir, '.cursor', 'mcp.json');
+      expect(fs.existsSync(rootManifest)).toBe(true);
+      expect(fs.existsSync(cursorManifest)).toBe(true);
+    });
   });
 
   describe('status action', () => {

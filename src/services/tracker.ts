@@ -26,6 +26,14 @@ export interface TicketListResult {
   total: number;
 }
 
+export interface JiraTicketCreateInput {
+  projectKey?: string;
+  issueType?: string;
+  summary: string;
+  description: string;
+  labels?: string[];
+}
+
 interface GithubIssue {
   number: number;
   title: string;
@@ -58,6 +66,11 @@ interface JiraIssue {
 
 interface HttpClientLike {
   get<T = unknown>(url: string, options?: Parameters<HttpClient['get']>[1]): Promise<{ data: T; status: number }>;
+  post?<T = unknown>(
+    url: string,
+    data?: unknown,
+    options?: Parameters<HttpClient['post']>[2]
+  ): Promise<{ data: T; status: number }>;
 }
 
 function extractIssueNumber(ticketKey: string): string | null {
@@ -163,6 +176,25 @@ function parseJiraDescription(description: unknown): string {
   return lines.join(' ').replace(/\s+\n/g, '\n').trim();
 }
 
+function buildJiraAdfDescription(text: string): Record<string, unknown> {
+  const lines = text
+    .split('\n')
+    .map(line => line.trimEnd());
+
+  const content = lines.map(line => ({
+    type: 'paragraph',
+    content: line.length > 0
+      ? [{ type: 'text', text: line }]
+      : [],
+  }));
+
+  return {
+    type: 'doc',
+    version: 1,
+    content,
+  };
+}
+
 export class TrackerService {
   private readonly client: HttpClientLike;
 
@@ -217,6 +249,61 @@ export class TrackerService {
       default:
         return { provider: 'none', tickets: [], total: 0 };
     }
+  }
+
+  async createJiraTicket(input: JiraTicketCreateInput): Promise<TicketBrief> {
+    if (this.config.type !== 'jira') {
+      throw new Error('Jira ticket creation requires tracker.type to be "jira" in .stackguide/config.json.');
+    }
+    if (!this.config.baseUrl) {
+      throw new Error('Jira tracker requires baseUrl in .stackguide/config.json.');
+    }
+    if (!this.client.post) {
+      throw new Error('HTTP client does not support POST requests.');
+    }
+
+    const projectKey = (input.projectKey || this.config.projectKey || '').trim();
+    if (!projectKey) {
+      throw new Error('Jira ticket creation requires projectKey (input or tracker config).');
+    }
+
+    const summary = input.summary.trim();
+    if (!summary) {
+      throw new Error('Jira ticket creation requires summary.');
+    }
+
+    const description = input.description.trim();
+    if (!description) {
+      throw new Error('Jira ticket creation requires description.');
+    }
+
+    const issueType = (input.issueType || this.config.defaultIssueType || 'Task').trim() || 'Task';
+    const baseUrl = this.config.baseUrl.replace(/\/$/, '');
+    const payload = {
+      fields: {
+        project: { key: projectKey },
+        issuetype: { name: issueType },
+        summary,
+        description: buildJiraAdfDescription(description),
+        ...(input.labels && input.labels.length > 0 ? { labels: input.labels } : {}),
+      },
+    };
+
+    const response = await this.client.post<{ key?: string }>(
+      `${baseUrl}/rest/api/3/issue`,
+      payload,
+      { headers: this.getHeaders() }
+    );
+    if (response.status >= 400) {
+      throw new Error(`Jira issue creation failed with status ${response.status}.`);
+    }
+
+    const ticketKey = response.data.key;
+    if (!ticketKey) {
+      throw new Error('Jira issue creation response did not include a key.');
+    }
+
+    return this.readJiraTicket(ticketKey);
   }
 
   private normalizeGithubIssue(issue: GithubIssue): TicketBrief {

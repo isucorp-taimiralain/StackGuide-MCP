@@ -2,7 +2,7 @@
   "mcpServers": {
     "stackguide": {
       "command": "npx",
-      "args": ["-y", "@stackguide/mcp-server@4.1.4"]
+      "args": ["-y", "@stackguide/mcp-server@4.1.5"]
     }
   }
 }

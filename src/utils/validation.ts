@@ -43,7 +43,14 @@ export const KnowledgeCategorySchema = z.enum([
 
 export const SetupInputSchema = z.object({
   path: z.string().optional().default('.'),
-  type: ProjectTypeSchema.optional()
+  type: ProjectTypeSchema.optional(),
+  enableAdaptiveTdd: z.boolean().optional().default(false),
+  model: z.string().optional(),
+  tokenMode: z.enum(['compact', 'balanced', 'verbose']).optional(),
+  integrations: z.array(z.enum(['jira', 'github', 'gitlab'])).optional(),
+  mcpSyncTargets: z.array(z.enum(['cursor', 'root'])).optional(),
+  jiraProjectKey: z.string().optional(),
+  jiraIssueType: z.string().optional(),
 });
 
 export const ContextInputSchema = z.object({

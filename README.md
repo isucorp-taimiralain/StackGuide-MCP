@@ -14,6 +14,8 @@ Dynamic context + active engineering workflow for AI coding assistants in Cursor
 - code review and health scoring
 - auto-detected setup and stack scaffolding
 - active agent workflow that executes real work (`intake`, `plan`, `verify`, `release`)
+- adaptive TDD preferences per project (model + token profile)
+- Jira ticket creation from strict `MAIN DESCRIPTION` templates
 - tracker + VCS + test orchestration for delivery flow
 
 This server is built for real team usage, not just prompt templates.
@@ -31,31 +33,95 @@ This server is built for real team usage, not just prompt templates.
   - repository guard blocks accidental tracking of local artifacts
   - cache and health history include integrity validation and safer writes
 
-## Install
+## Install By IDE
 
-### Cursor (`.cursor/mcp.json`)
+### Cursor
+
+- File (workspace): `.cursor/mcp.json`
+- File (global): `~/.cursor/mcp.json`
 
 ```json
 {
   "mcpServers": {
     "stackguide": {
       "command": "npx",
-      "args": ["-y", "@stackguide/mcp-server"]
+      "args": ["-y", "@stackguide/mcp-server@latest"]
     }
   }
 }
 ```
 
-### VS Code (`.vscode/mcp.json`)
+### JetBrains (IntelliJ, WebStorm, PhpStorm, etc.)
 
-Use the same config as Cursor.
+- Open `Settings | Tools | AI Assistant | Model Context Protocol (MCP)`.
+- Click **Add** and paste JSON config.
+- Recommended: set it as **Project-level** unless you want global scope.
+
+```json
+{
+  "mcpServers": {
+    "stackguide": {
+      "command": "npx",
+      "args": ["-y", "@stackguide/mcp-server@latest"]
+    }
+  }
+}
+```
+
+### VS Code
+
+- Requirement: GitHub Copilot Chat with MCP enabled.
+- File (workspace): `.vscode/mcp.json`
+- VS Code MCP schema uses `servers` as root key.
+
+```json
+{
+  "servers": {
+    "stackguide": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@stackguide/mcp-server@latest"]
+    }
+  }
+}
+```
+
+### Visual Studio (Windows, 2022 17.14+ / 2026+)
+
+- Enable GitHub Copilot Agent mode.
+- Supported config locations include:
+  - `%USERPROFILE%\\.mcp.json` (global)
+  - `<solution>\\.mcp.json` (repo-scoped)
+  - `<solution>\\.vs\\mcp.json` (solution/user-scoped)
+- Visual Studio MCP schema uses `servers` as root key.
+
+```json
+{
+  "servers": {
+    "stackguide": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@stackguide/mcp-server@latest"]
+    }
+  }
+}
+```
+
+## How To Use (Any IDE)
+
+1. Restart the IDE after adding the MCP configuration.
+2. Open AI chat in agent/tool mode.
+3. Call `setup` to detect project context.
+4. Call `init action:"full"` to scaffold `.stackguide/` and defaults.
+5. Use `agent` actions (`intake`, `create_ticket`, `plan`, `verify`, `release`) for delivery flow.
 
 ## Quick Start
 
 1. Configure your project:
 
 ```bash
-init action:"full"
+setup type:"react-typescript" enableAdaptiveTdd:true model:"gpt-5" integrations:["jira","github"] tokenMode:"compact"
+init action:"full" model:"gpt-5" tokenMode:"compact" integrations:["jira","github"] mcpSyncTargets:["cursor","root"] applyMcpTemplates:true
 ```
 
 1. Check generated setup:
@@ -69,6 +135,7 @@ agent action:"status"
 
 ```bash
 agent action:"intake" ticket:"PROJ-123"
+agent action:"create_ticket" mainDescription:"<MAIN DESCRIPTION>" projectKey:"PROJ"
 agent action:"plan" brief:"<brief-from-intake>"
 agent action:"verify"
 agent action:"release" version:"v1.2.0"
@@ -102,7 +169,7 @@ agent action:"release" version:"v1.2.0"
 
 - `workflow`: lazy-load raw workflow assets (agents/skills/hooks/commands)
 - `init`: scaffold `.stackguide` with stack-aware defaults
-- `agent`: active workflow executor (`status`, `intake`, `plan`, `verify`, `release`)
+- `agent`: active workflow executor (`status`, `intake`, `create_ticket`, `plan`, `verify`, `release`)
 
 ## Active Workflow Details
 
@@ -111,6 +178,13 @@ agent action:"release" version:"v1.2.0"
 - reads ticket from configured tracker
 - returns normalized brief + gaps
 - proposes branch name convention
+- can optionally create a Jira ticket first (`createFromDescription:true`)
+
+### `agent action:"create_ticket"`
+
+- creates Jira issues using strict `MAIN DESCRIPTION` format
+- uses project defaults from `.stackguide/config.json` (`projectKey`, `issueType`)
+- derives `summary` from first line of `MAIN DESCRIPTION` when omitted
 
 ### `agent action:"plan"`
 

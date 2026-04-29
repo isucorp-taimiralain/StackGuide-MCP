@@ -94,6 +94,52 @@ describe('TrackerService', () => {
     expect(ticket.priority).toBe('High');
   });
 
+  it('creates Jira ticket from strict description', async () => {
+    const client = {
+      post: vi.fn().mockResolvedValue({
+        status: 201,
+        data: { key: 'PROJ-99' },
+      }),
+      get: vi.fn().mockResolvedValue({
+        status: 200,
+        data: {
+          key: 'PROJ-99',
+          fields: {
+            summary: 'Layout adaptation for My Account',
+            description: {
+              type: 'doc',
+              content: [
+                {
+                  type: 'paragraph',
+                  content: [{ type: 'text', text: 'MAIN DESCRIPTION' }],
+                },
+              ],
+            },
+            labels: ['ui'],
+            priority: { name: 'Medium' },
+            issuetype: { name: 'Task' },
+            status: { name: 'To Do' },
+          },
+        },
+      }),
+    };
+
+    const service = new TrackerService(
+      { type: 'jira', baseUrl: 'https://jira.example.com', tokenEnv: 'JIRA_TOKEN', projectKey: 'PROJ' },
+      client
+    );
+
+    const created = await service.createJiraTicket({
+      summary: 'Layout adaptation for My Account',
+      description: 'MAIN DESCRIPTION\n\nUpdate profile layout.',
+      issueType: 'Task',
+    });
+
+    expect(client.post).toHaveBeenCalled();
+    expect(created.key).toBe('PROJ-99');
+    expect(created.type).toBe('Task');
+  });
+
   it('throws when tracker is not configured', async () => {
     const service = new TrackerService({ type: 'none' });
     await expect(service.readTicket('1')).rejects.toThrow(/Tracker is not configured/i);

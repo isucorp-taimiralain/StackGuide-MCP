@@ -191,5 +191,38 @@ describe('setup handler', () => {
         expect(data.wizard.hint).toContain('setup');
       }
     });
+
+    it('should request model and integrations for adaptive TDD mode', async () => {
+      const response = await handleSetup(
+        { type: 'react-typescript', enableAdaptiveTdd: true },
+        state
+      );
+      const data = JSON.parse(response.content[0].text);
+
+      expect(data.success).toBe(false);
+      expect(data.wizard.status).toBe('needs_input');
+      expect(data.wizard.missingFields).toContain('model');
+      expect(data.wizard.missingFields).toContain('integrations');
+    });
+
+    it('should include adaptive preview when setup receives full adaptive args', async () => {
+      const response = await handleSetup(
+        {
+          type: 'react-typescript',
+          enableAdaptiveTdd: true,
+          model: 'gpt-5',
+          tokenMode: 'compact',
+          integrations: ['jira', 'github'],
+          mcpSyncTargets: ['cursor', 'root'],
+        },
+        state
+      );
+      const data = JSON.parse(response.content[0].text);
+
+      expect(data.success).toBe(true);
+      expect(data.wizard.adaptiveTdd).toBeDefined();
+      expect(data.wizard.adaptiveTdd.model).toBe('gpt-5');
+      expect(data.wizard.adaptiveTdd.mcpPreview.targets.length).toBe(2);
+    });
   });
 });

@@ -11,6 +11,9 @@ import { logger } from '../utils/logger.js';
 export type TrackerType = 'github' | 'gitlab' | 'jira' | 'none';
 export type VcsType = 'github' | 'gitlab' | 'git';
 export type DetectionConfidence = 'high' | 'medium' | 'low' | 'manual' | 'unknown';
+export type TddTokenMode = 'compact' | 'balanced' | 'verbose';
+export type McpIntegration = 'jira' | 'github' | 'gitlab';
+export type McpManifestTarget = 'cursor' | 'root';
 
 export interface TrackerConfig {
   type: TrackerType;
@@ -20,6 +23,7 @@ export interface TrackerConfig {
   projectId?: string;
   baseUrl?: string;
   projectKey?: string;
+  defaultIssueType?: string;
 }
 
 export interface VcsConfig {
@@ -56,18 +60,51 @@ export interface WorkflowConfig {
   requireTicketInBranch: boolean;
 }
 
+export interface TddAutomationConfig {
+  preferredModel: string;
+  tokenMode: TddTokenMode;
+}
+
+export interface JiraAutomationConfig {
+  issueType: string;
+  summarySource: 'first_line_main_description';
+  descriptionField: 'description';
+  strictTemplate: boolean;
+}
+
+export interface McpAutomationConfig {
+  integrations: McpIntegration[];
+  syncTargets: McpManifestTarget[];
+}
+
+export interface AutomationConfig {
+  tdd: TddAutomationConfig;
+  jira: JiraAutomationConfig;
+  mcp: McpAutomationConfig;
+}
+
 export interface AgentProjectConfig {
   version: 1;
   tracker: TrackerConfig;
   vcs: VcsConfig;
   testing: TestingConfig;
   workflow: WorkflowConfig;
+  automation: AutomationConfig;
   metadata: {
     generatedAt: string;
     projectType: string | null;
     detectionConfidence: DetectionConfidence;
     source: 'auto' | 'manual';
   };
+}
+
+export interface AgentConfigOverrides {
+  model?: string;
+  tokenMode?: TddTokenMode;
+  mcpIntegrations?: McpIntegration[];
+  mcpSyncTargets?: McpManifestTarget[];
+  jiraProjectKey?: string;
+  jiraIssueType?: string;
 }
 
 interface RemoteInfo {
@@ -86,6 +123,10 @@ interface ProjectDetectionContext {
 const STACKGUIDE_DIR = '.stackguide';
 const CONFIG_FILE = 'config.json';
 const DEFAULT_BRANCH_PATTERN = 'feature/<TICKET>-<slug>';
+const DEFAULT_MODEL = 'model-auto';
+const DEFAULT_TOKEN_MODE: TddTokenMode = 'compact';
+const DEFAULT_MCP_TARGETS: McpManifestTarget[] = ['cursor', 'root'];
+const DEFAULT_MCP_INTEGRATIONS: McpIntegration[] = [];
 
 function readJsonSafe<T>(filePath: string): T | null {
   try {
@@ -163,14 +204,44 @@ function detectDefaultBranch(projectPath: string): string {
   return 'main';
 }
 
+function normalizeMcpIntegration(value: string): McpIntegration | null {
+  if (value === 'jira' || value === 'github' || value === 'gitlab') {
+    return value;
+  }
+  return null;
+}
+
+function normalizeMcpTarget(value: string): McpManifestTarget | null {
+  if (value === 'cursor' || value === 'root') {
+    return value;
+  }
+  return null;
+}
+
+function getMcpServers(projectPath: string): Record<string, unknown> {
+  const manifests = [
+    path.join(projectPath, '.mcp.json'),
+    path.join(projectPath, '.cursor', 'mcp.json'),
+  ];
+
+  const merged: Record<string, unknown> = {};
+  for (const manifestPath of manifests) {
+    const mcpData = readJsonSafe<{ mcpServers?: Record<string, unknown> }>(manifestPath);
+    if (mcpData?.mcpServers) {
+      Object.assign(merged, mcpData.mcpServers);
+    }
+  }
+
+  return merged;
+}
+
 function detectJiraFromMcpConfig(projectPath: string): Partial<TrackerConfig> | null {
-  const mcpPath = path.join(projectPath, '.mcp.json');
-  const mcpData = readJsonSafe<{ mcpServers?: Record<string, unknown> }>(mcpPath);
-  if (!mcpData?.mcpServers) {
+  const mcpServers = getMcpServers(projectPath);
+  if (Object.keys(mcpServers).length === 0) {
     return null;
   }
 
-  for (const [name, serverRaw] of Object.entries(mcpData.mcpServers)) {
+  for (const [name, serverRaw] of Object.entries(mcpServers)) {
     if (!name.toLowerCase().includes('jira')) {
       continue;
     }
@@ -292,6 +363,33 @@ function detectTestingConfig(projectPath: string): TestingConfig {
   };
 }
 
+function buildAutomationConfig(overrides: AgentConfigOverrides = {}): AutomationConfig {
+  const integrations = (overrides.mcpIntegrations || [])
+    .map(normalizeMcpIntegration)
+    .filter((integration): integration is McpIntegration => integration !== null);
+
+  const syncTargets = (overrides.mcpSyncTargets || DEFAULT_MCP_TARGETS)
+    .map(normalizeMcpTarget)
+    .filter((target): target is McpManifestTarget => target !== null);
+
+  return {
+    tdd: {
+      preferredModel: (overrides.model || DEFAULT_MODEL).trim() || DEFAULT_MODEL,
+      tokenMode: overrides.tokenMode || DEFAULT_TOKEN_MODE,
+    },
+    jira: {
+      issueType: (overrides.jiraIssueType || 'Task').trim() || 'Task',
+      summarySource: 'first_line_main_description',
+      descriptionField: 'description',
+      strictTemplate: true,
+    },
+    mcp: {
+      integrations: integrations.length > 0 ? integrations : [...DEFAULT_MCP_INTEGRATIONS],
+      syncTargets: syncTargets.length > 0 ? syncTargets : [...DEFAULT_MCP_TARGETS],
+    },
+  };
+}
+
 function buildVcsConfig(projectPath: string, remote: RemoteInfo): VcsConfig {
   const defaultBranch = detectDefaultBranch(projectPath);
 
@@ -325,14 +423,20 @@ function buildVcsConfig(projectPath: string, remote: RemoteInfo): VcsConfig {
   };
 }
 
-function buildTrackerConfig(projectPath: string, remote: RemoteInfo): TrackerConfig {
+function buildTrackerConfig(
+  projectPath: string,
+  remote: RemoteInfo,
+  overrides: AgentConfigOverrides = {}
+): TrackerConfig {
   const jiraConfig = detectJiraFromMcpConfig(projectPath);
+  const issueType = (overrides.jiraIssueType || 'Task').trim() || 'Task';
   if (jiraConfig?.type === 'jira') {
     return {
       type: 'jira',
       tokenEnv: jiraConfig.tokenEnv || 'JIRA_TOKEN',
       baseUrl: jiraConfig.baseUrl,
-      projectKey: jiraConfig.projectKey,
+      projectKey: overrides.jiraProjectKey || jiraConfig.projectKey,
+      defaultIssueType: issueType,
     };
   }
 
@@ -342,6 +446,7 @@ function buildTrackerConfig(projectPath: string, remote: RemoteInfo): TrackerCon
       owner: remote.owner,
       repo: remote.repo,
       tokenEnv: 'GITHUB_TOKEN',
+      defaultIssueType: issueType,
     };
   }
 
@@ -352,14 +457,35 @@ function buildTrackerConfig(projectPath: string, remote: RemoteInfo): TrackerCon
       owner: remote.owner,
       repo: remote.repo,
       tokenEnv: 'GITLAB_TOKEN',
+      defaultIssueType: issueType,
     };
   }
 
-  return { type: 'none' };
+  return { type: 'none', defaultIssueType: issueType };
 }
 
 export function getAgentConfigPath(projectPath: string): string {
   return path.join(projectPath, STACKGUIDE_DIR, CONFIG_FILE);
+}
+
+function withConfigDefaults(config: AgentProjectConfig): AgentProjectConfig {
+  const automation = buildAutomationConfig({
+    model: config.automation?.tdd?.preferredModel,
+    tokenMode: config.automation?.tdd?.tokenMode,
+    mcpIntegrations: config.automation?.mcp?.integrations,
+    mcpSyncTargets: config.automation?.mcp?.syncTargets,
+    jiraIssueType: config.automation?.jira?.issueType || config.tracker.defaultIssueType,
+    jiraProjectKey: config.tracker.projectKey,
+  });
+
+  return {
+    ...config,
+    tracker: {
+      ...config.tracker,
+      defaultIssueType: config.tracker.defaultIssueType || automation.jira.issueType,
+    },
+    automation,
+  };
 }
 
 export function readAgentProjectConfig(projectPath: string): AgentProjectConfig | null {
@@ -374,7 +500,7 @@ export function readAgentProjectConfig(projectPath: string): AgentProjectConfig 
     return null;
   }
 
-  return data;
+  return withConfigDefaults(data);
 }
 
 export function writeAgentProjectConfig(projectPath: string, config: AgentProjectConfig): string {
@@ -391,13 +517,15 @@ export function writeAgentProjectConfig(projectPath: string, config: AgentProjec
 
 export function generateAgentProjectConfig(
   projectPath: string,
-  detection: ProjectDetectionContext
+  detection: ProjectDetectionContext,
+  overrides: AgentConfigOverrides = {}
 ): AgentProjectConfig {
   const remote = detectGitRemote(projectPath);
+  const automation = buildAutomationConfig(overrides);
 
   const config: AgentProjectConfig = {
     version: 1,
-    tracker: buildTrackerConfig(projectPath, remote),
+    tracker: buildTrackerConfig(projectPath, remote, overrides),
     vcs: buildVcsConfig(projectPath, remote),
     testing: detectTestingConfig(projectPath),
     workflow: {
@@ -405,6 +533,7 @@ export function generateAgentProjectConfig(
       commitConvention: 'conventional',
       requireTicketInBranch: true,
     },
+    automation,
     metadata: {
       generatedAt: new Date().toISOString(),
       projectType: detection.projectType,
@@ -417,6 +546,8 @@ export function generateAgentProjectConfig(
     projectPath,
     tracker: config.tracker.type,
     vcs: config.vcs.type,
+    model: config.automation.tdd.preferredModel,
+    tokenMode: config.automation.tdd.tokenMode,
     hasBackend: !!config.testing.backend,
     hasFrontend: !!config.testing.frontend,
   });

@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { z } from 'zod';
 import { jsonResponse, errorResponse, ToolResponse, ServerState } from './types.js';
-import { readAgentProjectConfig, getAgentConfigPath } from '../config/agentConfig.js';
+import { AgentProjectConfig, readAgentProjectConfig, getAgentConfigPath } from '../config/agentConfig.js';
 import { TrackerService } from '../services/tracker.js';
 import { VcsService, CommitInfo } from '../services/vcs.js';
 import { TestRunnerService } from '../services/testRunner.js';
@@ -16,15 +16,35 @@ import { detectProjectType } from '../services/autoDetect.js';
 import { analyzeWithTreeSitter } from '../services/ast/analyzer.js';
 import { analyzeCode } from '../services/codeAnalyzer.js';
 import { handleHealth } from './health.js';
+import { buildStrictMainDescriptionTemplate, deriveSummaryFromMainDescription } from '../services/jiraTicketTemplate.js';
 
 const AgentInputSchema = z.object({
-  action: z.enum(['status', 'intake', 'plan', 'verify', 'release']).default('status'),
+  action: z.enum(['status', 'intake', 'create_ticket', 'plan', 'verify', 'release']).default('status'),
   path: z.string().optional(),
   ticket: z.string().optional(),
   brief: z.string().optional(),
   version: z.string().optional(),
   createTag: z.boolean().optional().default(false),
   createPullRequest: z.boolean().optional().default(false),
+  createFromDescription: z.boolean().optional().default(false),
+  mainDescription: z.string().optional(),
+  summary: z.string().optional(),
+  projectKey: z.string().optional(),
+  issueType: z.string().optional(),
+  labels: z.array(z.string()).optional(),
+  originComponent: z.string().optional(),
+  originKeyLogic: z.string().optional(),
+  originOldQuery: z.string().optional(),
+  destinationModel: z.string().optional(),
+  destinationController: z.string().optional(),
+  destinationRoute: z.string().optional(),
+  destinationView: z.string().optional(),
+  dataTransformation: z.string().optional(),
+  prototypeDesignPattern: z.string().optional(),
+  prototypeView: z.string().optional(),
+  prototypeProps: z.string().optional(),
+  prototypeRelatedFiles: z.array(z.string()).optional(),
+  acceptanceCriteria: z.array(z.string()).optional(),
 }).passthrough();
 
 type AgentInput = z.infer<typeof AgentInputSchema>;
@@ -56,6 +76,102 @@ function parseJsonResponse(text: string): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+interface TicketCreationDraft {
+  ready: boolean;
+  missingFields: string[];
+  projectKey: string;
+  issueType: string;
+  summary: string;
+  description: string;
+  labels: string[];
+  defaults: {
+    projectKey: string | null;
+    issueType: string;
+    summarySource: 'first_line_main_description';
+    descriptionField: 'description';
+  };
+}
+
+function normalizeList(values?: string[]): string[] {
+  if (!values) {
+    return [];
+  }
+  return values
+    .map(value => value.trim())
+    .filter(value => value.length > 0);
+}
+
+function buildTicketCreationDraft(input: AgentInput, config: AgentProjectConfig): TicketCreationDraft {
+  const mainDescription = (input.mainDescription || '').trim();
+  const projectKey = (input.projectKey || config.tracker.projectKey || '').trim();
+  const issueType = (input.issueType || config.tracker.defaultIssueType || config.automation.jira.issueType || 'Task').trim() || 'Task';
+  const summary = (input.summary || deriveSummaryFromMainDescription(mainDescription)).trim();
+
+  const missingFields: string[] = [];
+  if (!mainDescription) {
+    missingFields.push('mainDescription');
+  }
+  if (!projectKey) {
+    missingFields.push('projectKey');
+  }
+  if (!summary) {
+    missingFields.push('summary');
+  }
+
+  const description = mainDescription
+    ? buildStrictMainDescriptionTemplate({
+      mainDescription,
+      originComponent: input.originComponent,
+      originKeyLogic: input.originKeyLogic,
+      originOldQuery: input.originOldQuery,
+      destinationModel: input.destinationModel,
+      destinationController: input.destinationController,
+      destinationRoute: input.destinationRoute,
+      destinationView: input.destinationView,
+      dataTransformation: input.dataTransformation,
+      prototypeDesignPattern: input.prototypeDesignPattern,
+      prototypeView: input.prototypeView,
+      prototypeProps: input.prototypeProps,
+      prototypeRelatedFiles: normalizeList(input.prototypeRelatedFiles),
+      acceptanceCriteria: normalizeList(input.acceptanceCriteria),
+    })
+    : '';
+
+  return {
+    ready: missingFields.length === 0,
+    missingFields,
+    projectKey,
+    issueType,
+    summary,
+    description,
+    labels: normalizeList(input.labels),
+    defaults: {
+      projectKey: config.tracker.projectKey || null,
+      issueType,
+      summarySource: 'first_line_main_description',
+      descriptionField: 'description',
+    },
+  };
+}
+
+function buildIntakeBrief(ticket: {
+  key: string;
+  title: string;
+  description: string;
+  acceptanceCriteria: string[];
+  gaps: string[];
+}): Record<string, unknown> {
+  return {
+    key: ticket.key,
+    title: ticket.title,
+    context: ticket.description,
+    acceptanceCriteria: ticket.acceptanceCriteria,
+    constraints: [],
+    risks: ticket.gaps,
+    suggestedTestData: [],
+  };
 }
 
 function buildBaselineTests(
@@ -237,12 +353,66 @@ export async function handleAgent(
           backend: !!config.testing.backend,
           frontend: !!config.testing.frontend,
         },
+        adaptiveTdd: config.automation.tdd,
+        jiraDefaults: {
+          projectKey: config.tracker.projectKey || null,
+          issueType: config.tracker.defaultIssueType || config.automation.jira.issueType,
+          summarySource: config.automation.jira.summarySource,
+          descriptionField: config.automation.jira.descriptionField,
+          strictTemplate: config.automation.jira.strictTemplate,
+        },
+        mcpIntegrations: config.automation.mcp,
       });
     }
 
     case 'intake': {
+      const shouldCreateFromDescription = input.createFromDescription || (!input.ticket && !!input.mainDescription);
+      if (shouldCreateFromDescription) {
+        const draft = buildTicketCreationDraft(input, config);
+        if (!draft.ready) {
+          return jsonResponse({
+            action: 'intake',
+            status: 'needs_input',
+            message: 'Missing fields to create Jira ticket from description.',
+            missingFields: draft.missingFields,
+            defaults: draft.defaults,
+            hint: 'Provide mainDescription plus projectKey (or set tracker.projectKey), then retry with createFromDescription:true.',
+          });
+        }
+
+        const createdTicket = await trackerService.createJiraTicket({
+          projectKey: draft.projectKey,
+          issueType: draft.issueType,
+          summary: draft.summary,
+          description: draft.description,
+          labels: draft.labels,
+        });
+        const detection = detectProjectType(projectPath);
+        const branchTicket = extractTicketKey(createdTicket.key) || createdTicket.key;
+        const suggestedBranch = vcsService.generateBranchName(branchTicket, slugify(createdTicket.title || 'work'));
+
+        return jsonResponse({
+          action: 'intake',
+          status: 'created',
+          createdFromDescription: true,
+          ticket: createdTicket,
+          brief: buildIntakeBrief(createdTicket),
+          projectDetection: {
+            detected: detection.detected,
+            projectType: detection.projectType,
+            confidence: detection.confidence,
+            frameworks: detection.frameworks,
+          },
+          nextStep: {
+            action: 'plan',
+            suggestedBranch,
+            message: 'Use agent action:"plan" with this brief to produce an executable TDD plan.',
+          },
+        });
+      }
+
       if (!input.ticket) {
-        return errorResponse('Missing ticket parameter for intake action.');
+        return errorResponse('Missing ticket parameter for intake action.', 'Pass ticket:"PROJ-123" or createFromDescription:true + mainDescription.');
       }
 
       const ticket = await trackerService.readTicket(input.ticket);
@@ -253,15 +423,7 @@ export async function handleAgent(
       return jsonResponse({
         action: 'intake',
         ticket,
-        brief: {
-          key: ticket.key,
-          title: ticket.title,
-          context: ticket.description,
-          acceptanceCriteria: ticket.acceptanceCriteria,
-          constraints: [],
-          risks: ticket.gaps,
-          suggestedTestData: [],
-        },
+        brief: buildIntakeBrief(ticket),
         projectDetection: {
           detected: detection.detected,
           projectType: detection.projectType,
@@ -272,6 +434,39 @@ export async function handleAgent(
           action: 'plan',
           suggestedBranch,
           message: 'Use agent action:"plan" with this brief to produce an executable TDD plan.',
+        },
+      });
+    }
+
+    case 'create_ticket': {
+      const draft = buildTicketCreationDraft(input, config);
+      if (!draft.ready) {
+        return jsonResponse({
+          action: 'create_ticket',
+          status: 'needs_input',
+          message: 'Missing required fields for Jira ticket creation.',
+          missingFields: draft.missingFields,
+          defaults: draft.defaults,
+          hint: 'Required: mainDescription + projectKey (or tracker.projectKey). Summary defaults to first line of MAIN DESCRIPTION.',
+        });
+      }
+
+      const ticket = await trackerService.createJiraTicket({
+        projectKey: draft.projectKey,
+        issueType: draft.issueType,
+        summary: draft.summary,
+        description: draft.description,
+        labels: draft.labels,
+      });
+
+      return jsonResponse({
+        action: 'create_ticket',
+        status: 'created',
+        ticket,
+        brief: buildIntakeBrief(ticket),
+        nextStep: {
+          action: 'plan',
+          message: 'Use agent action:"plan" and pass this brief to continue TDD.',
         },
       });
     }
@@ -322,6 +517,7 @@ export async function handleAgent(
         projectContext: {
           projectType: detection.projectType,
           confidence: detection.confidence,
+          adaptiveTdd: config.automation.tdd,
           conventions: {
             testFramework: conventions.testFramework,
             testLocation: conventions.testLocation,

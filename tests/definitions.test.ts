@@ -104,6 +104,13 @@ describe('tool definitions', () => {
       expect(configTool?.inputSchema.properties.action.enum).toContain('delete');
     });
 
+    it('agent tool should include create_ticket action', () => {
+      const agentTool = toolDefinitions.find(t => t.name === 'agent');
+      expect(agentTool).toBeDefined();
+      expect(agentTool?.inputSchema.properties.action.enum).toContain('create_ticket');
+      expect(agentTool?.inputSchema.properties).toHaveProperty('mainDescription');
+    });
+
     it('should have unique tool names', () => {
       const toolNames = toolDefinitions.map(t => t.name);
       const uniqueNames = new Set(toolNames);

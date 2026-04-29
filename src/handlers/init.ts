@@ -11,11 +11,13 @@ import { jsonResponse, errorResponse, ToolResponse } from './types.js';
 import { ServerState } from './types.js';
 import { detectProjectType, DetectionResult } from '../services/autoDetect.js';
 import {
+  AgentConfigOverrides,
   generateAgentProjectConfig,
   getAgentConfigPath,
   readAgentProjectConfig,
   writeAgentProjectConfig,
 } from '../config/agentConfig.js';
+import { syncMcpTemplateConfigs } from '../services/mcpConfig.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKFLOW_ROOT = path.resolve(__dirname, '../../data/workflows/tdd');
@@ -134,12 +136,45 @@ function files(dir: string): string[] {
   }
 }
 
+function normalizeTokenMode(value: unknown): AgentConfigOverrides['tokenMode'] | undefined {
+  return value === 'compact' || value === 'balanced' || value === 'verbose'
+    ? value
+    : undefined;
+}
+
+function normalizeIntegrations(value: unknown): AgentConfigOverrides['mcpIntegrations'] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const normalized = value
+    .filter(item => item === 'jira' || item === 'github' || item === 'gitlab') as Array<'jira' | 'github' | 'gitlab'>;
+  return normalized.length > 0 ? normalized : [];
+}
+
+function normalizeSyncTargets(value: unknown): AgentConfigOverrides['mcpSyncTargets'] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const normalized = value
+    .filter(item => item === 'cursor' || item === 'root') as Array<'cursor' | 'root'>;
+  return normalized.length > 0 ? normalized : [];
+}
+
 export async function handleInit(
   args: Record<string, unknown>,
   _state: ServerState
 ): Promise<ToolResponse> {
   const action = (args.action as string) || 'full';
   const projectPath = (args.path as string) || process.cwd();
+  const overrides: AgentConfigOverrides = {
+    ...(typeof args.model === 'string' ? { model: args.model } : {}),
+    ...(normalizeTokenMode(args.tokenMode) ? { tokenMode: normalizeTokenMode(args.tokenMode) } : {}),
+    ...(normalizeIntegrations(args.integrations) ? { mcpIntegrations: normalizeIntegrations(args.integrations) } : {}),
+    ...(normalizeSyncTargets(args.mcpSyncTargets) ? { mcpSyncTargets: normalizeSyncTargets(args.mcpSyncTargets) } : {}),
+    ...(typeof args.jiraProjectKey === 'string' ? { jiraProjectKey: args.jiraProjectKey } : {}),
+    ...(typeof args.jiraIssueType === 'string' ? { jiraIssueType: args.jiraIssueType } : {}),
+  };
+  const applyMcpTemplates = args.applyMcpTemplates !== false;
 
   if (!fs.existsSync(projectPath)) {
     return errorResponse(`Path "${projectPath}" does not exist.`);
@@ -153,7 +188,7 @@ export async function handleInit(
         projectType: detection.projectType,
         confidence: detectionConfidence,
         source: detection.detected ? 'auto' : 'manual',
-      });
+      }, overrides);
 
       return jsonResponse({
         detected: detection.detected,
@@ -197,8 +232,18 @@ export async function handleInit(
         projectType: detection?.projectType || null,
         confidence: forcedType ? 'manual' : (detection?.confidence || 'unknown'),
         source: forcedType ? 'manual' : 'auto',
-      });
+      }, overrides);
       const configPath = writeAgentProjectConfig(projectPath, generatedConfig);
+      const mcpSync = applyMcpTemplates
+        ? syncMcpTemplateConfigs(
+          projectPath,
+          generatedConfig.automation.mcp.integrations,
+          generatedConfig.automation.mcp.syncTargets
+        )
+        : null;
+      const mcpAddedServers = mcpSync
+        ? mcpSync.targets.flatMap(target => target.addedServers)
+        : [];
 
       return jsonResponse({
         success: true,
@@ -207,6 +252,7 @@ export async function handleInit(
         directory: '.stackguide/',
         configPath,
         config: generatedConfig,
+        mcpSync,
         files: {
           copied: result.copied,
           skipped: result.skipped,
@@ -215,6 +261,16 @@ export async function handleInit(
         nextSteps: [
           'Review the generated `.stackguide/` directory.',
           'Review and adjust `.stackguide/config.json` for tracker, VCS and test commands.',
+          ...(mcpSync
+            ? [
+              mcpAddedServers.length > 0
+                ? `MCP templates added: ${Array.from(new Set(mcpAddedServers)).join(', ')}.`
+                : 'No new MCP templates were added because selected servers already exist.',
+              mcpSync.placeholders.length > 0
+                ? `Replace placeholders in MCP manifests: ${mcpSync.placeholders.join(', ')}.`
+                : 'No placeholders pending in generated MCP templates.',
+            ]
+            : ['MCP template synchronization skipped (applyMcpTemplates:false).']),
           'Use `agent action:"intake" ticket:"PROJ-123"` to run active workflow actions.',
           'Commit `.stackguide/` to your repo so the whole team benefits.',
           result.stackType

@@ -21,6 +21,37 @@ export const toolDefinitions = [
           type: 'string',
           description: 'Project type to use (auto-detected if not specified)',
           enum: Object.keys(SUPPORTED_PROJECTS)
+        },
+        enableAdaptiveTdd: {
+          type: 'boolean',
+          description: 'Enable the adaptive TDD setup wizard that asks for model and integration preferences'
+        },
+        model: {
+          type: 'string',
+          description: 'Preferred model identifier for TDD runs (saved in .stackguide/config.json)'
+        },
+        tokenMode: {
+          type: 'string',
+          description: 'Token profile for prompts and workflow responses',
+          enum: ['compact', 'balanced', 'verbose']
+        },
+        integrations: {
+          type: 'array',
+          items: { type: 'string', enum: ['jira', 'github', 'gitlab'] },
+          description: 'External MCP integrations to scaffold as templates'
+        },
+        mcpSyncTargets: {
+          type: 'array',
+          items: { type: 'string', enum: ['cursor', 'root'] },
+          description: 'Where MCP template servers should be synchronized'
+        },
+        jiraProjectKey: {
+          type: 'string',
+          description: 'Default Jira project key used when creating tickets from descriptions'
+        },
+        jiraIssueType: {
+          type: 'string',
+          description: 'Default Jira issue type (Task, Story, Bug...)'
         }
       },
       required: []
@@ -368,6 +399,37 @@ export const toolDefinitions = [
           type: 'string',
           description: 'Force a project type instead of auto-detecting',
           enum: Object.keys(SUPPORTED_PROJECTS)
+        },
+        model: {
+          type: 'string',
+          description: 'Preferred model identifier saved for adaptive TDD'
+        },
+        tokenMode: {
+          type: 'string',
+          description: 'Token profile for adaptive TDD',
+          enum: ['compact', 'balanced', 'verbose']
+        },
+        integrations: {
+          type: 'array',
+          items: { type: 'string', enum: ['jira', 'github', 'gitlab'] },
+          description: 'External MCP integrations to scaffold in local manifests'
+        },
+        mcpSyncTargets: {
+          type: 'array',
+          items: { type: 'string', enum: ['cursor', 'root'] },
+          description: 'Target manifest files for MCP synchronization'
+        },
+        applyMcpTemplates: {
+          type: 'boolean',
+          description: 'If true, writes MCP integration templates into selected manifests'
+        },
+        jiraProjectKey: {
+          type: 'string',
+          description: 'Default Jira project key for ticket creation'
+        },
+        jiraIssueType: {
+          type: 'string',
+          description: 'Default Jira issue type (Task by default)'
         }
       },
       required: []
@@ -377,14 +439,14 @@ export const toolDefinitions = [
   // ==================== AGENT (1) - NEW in v4.1.0 ====================
   {
     name: 'agent',
-    description: 'Active agent workflow actions that execute real work: intake (ticket read), plan (TDD plan), verify (run tests/lint/build + checks), release (CI + release notes/tag/PR).',
+    description: 'Active agent workflow actions: intake/plan/verify/release plus Jira ticket creation from strict MAIN DESCRIPTION templates.',
     inputSchema: {
       type: 'object',
       properties: {
         action: {
           type: 'string',
           description: 'Active workflow action',
-          enum: ['status', 'intake', 'plan', 'verify', 'release']
+          enum: ['status', 'intake', 'create_ticket', 'plan', 'verify', 'release']
         },
         path: {
           type: 'string',
@@ -409,6 +471,85 @@ export const toolDefinitions = [
         createPullRequest: {
           type: 'boolean',
           description: 'If true, release action opens PR/MR when provider is configured'
+        },
+        createFromDescription: {
+          type: 'boolean',
+          description: 'When action is intake, create Jira ticket first from MAIN DESCRIPTION template'
+        },
+        mainDescription: {
+          type: 'string',
+          description: 'MAIN DESCRIPTION body used to create Jira tickets'
+        },
+        summary: {
+          type: 'string',
+          description: 'Optional Jira summary (defaults to first line of MAIN DESCRIPTION)'
+        },
+        projectKey: {
+          type: 'string',
+          description: 'Optional Jira project key override'
+        },
+        issueType: {
+          type: 'string',
+          description: 'Optional Jira issue type override (Task/Story/Bug)'
+        },
+        labels: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional labels to set when creating Jira tickets'
+        },
+        originComponent: {
+          type: 'string',
+          description: 'ORIGIN section value: Component'
+        },
+        originKeyLogic: {
+          type: 'string',
+          description: 'ORIGIN section value: Key Logic'
+        },
+        originOldQuery: {
+          type: 'string',
+          description: 'ORIGIN section value: Old Query'
+        },
+        destinationModel: {
+          type: 'string',
+          description: 'DESTINATION section value: Model'
+        },
+        destinationController: {
+          type: 'string',
+          description: 'DESTINATION section value: Controller'
+        },
+        destinationRoute: {
+          type: 'string',
+          description: 'DESTINATION section value: Route'
+        },
+        destinationView: {
+          type: 'string',
+          description: 'DESTINATION section value: View'
+        },
+        dataTransformation: {
+          type: 'string',
+          description: 'DATA TRANSFORMATION section content'
+        },
+        prototypeDesignPattern: {
+          type: 'string',
+          description: 'PROTOTYPES section value: Design Pattern'
+        },
+        prototypeView: {
+          type: 'string',
+          description: 'PROTOTYPES section value: View'
+        },
+        prototypeProps: {
+          type: 'string',
+          description: 'PROTOTYPES section value: Props'
+        },
+        prototypeRelatedFiles: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'PROTOTYPES related files list'
+        },
+        acceptanceCriteria: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Acceptance criteria list for strict Jira template'
         }
       },
       required: []

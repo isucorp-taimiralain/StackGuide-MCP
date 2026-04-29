@@ -41,6 +41,14 @@ const ALLOWED_PROMPT_HOSTS = [
   'bitbucket.org'
 ];
 
+function compactText(input: string, limit: number): string {
+  const normalized = input.trim();
+  if (normalized.length <= limit) {
+    return normalized;
+  }
+  return `${normalized.slice(0, Math.max(1, limit - 3)).trimEnd()}...`;
+}
+
 // ============================================================================
 // Prompt Definitions
 // ============================================================================
@@ -79,21 +87,29 @@ export function listAllPrompts(): PromptInfo[] {
       name: 'tdd_intake',
       description: 'Activate the Task Intake agent — reads a ticket and produces a brief for the Planner',
       arguments: [
-        { name: 'ticketKey', description: 'Ticket identifier (e.g. PROJ-123)', required: true }
+        { name: 'ticketKey', description: 'Ticket identifier (e.g. PROJ-123)', required: false },
+        { name: 'mainDescription', description: 'When creating ticket first, use MAIN DESCRIPTION text', required: false },
+        { name: 'projectKey', description: 'Jira project key when creating from description', required: false }
       ]
     },
     {
       name: 'tdd_plan',
       description: 'Activate the TDD Planner agent — produces a test-first plan with 3 tests for a vertical slice',
       arguments: [
-        { name: 'brief', description: 'Brief from Intake or direct task description', required: true }
+        { name: 'brief', description: 'Brief from Intake or direct task description', required: true },
+        { name: 'tokenMode', description: 'Optional prompt compactness mode: compact/balanced/verbose', required: false }
       ]
     },
     {
       name: 'tdd_implement',
       description: 'Activate the TDD Implementer agent — executes Red → Green → Refactor for the planned tests',
       arguments: [
-        { name: 'plan', description: 'Approved plan from the TDD Planner', required: true }
+        { name: 'plan', description: 'Approved plan from the TDD Planner (optional when planSummary is provided)', required: false },
+        { name: 'planSummary', description: 'Compact approved plan digest', required: false },
+        { name: 'ticket', description: 'Ticket key for traceability', required: false },
+        { name: 'branch', description: 'Proposed branch name from planning output', required: false },
+        { name: 'tests', description: 'Compact JSON/string for the 3 planned tests', required: false },
+        { name: 'tokenMode', description: 'Optional prompt compactness mode: compact/balanced/verbose', required: false }
       ]
     },
     {
@@ -301,6 +317,11 @@ Please:
 
 function handleTddIntakePrompt(args: Record<string, unknown>): PromptResult {
   const ticketKey = (args.ticketKey as string) || '<TICKET-KEY>';
+  const mainDescription = (args.mainDescription as string) || '';
+  const projectKey = (args.projectKey as string) || '<PROJECT-KEY>';
+  const intakeCommand = mainDescription.trim().length > 0
+    ? `- agent action:"intake" createFromDescription:true mainDescription:"${compactText(mainDescription, 1200).replace(/"/g, '\\"')}" projectKey:"${projectKey}"`
+    : `- agent action:"intake" ticket:"${ticketKey}"`;
 
   return {
     messages: [{
@@ -310,7 +331,7 @@ function handleTddIntakePrompt(args: Record<string, unknown>): PromptResult {
         text: `Use the active StackGuide workflow.
 
 Step 1: Call the MCP tool:
-- agent action:"intake" ticket:"${ticketKey}"
+${intakeCommand}
 
 Step 2: Use the returned structured brief to identify missing details (if any gaps are reported).
 Step 3: Continue with prompt tdd_plan and pass the normalized brief.
@@ -323,6 +344,9 @@ Do not load passive role markdown; use the active tool output as the source of t
 
 function handleTddPlanPrompt(args: Record<string, unknown>): PromptResult {
   const brief = (args.brief as string) || '<paste brief here>';
+  const tokenMode = ((args.tokenMode as string) || 'compact').toLowerCase();
+  const briefLimit = tokenMode === 'verbose' ? 6000 : tokenMode === 'balanced' ? 3000 : 1200;
+  const briefPayload = compactText(brief, briefLimit);
 
   return {
     messages: [{
@@ -332,12 +356,13 @@ function handleTddPlanPrompt(args: Record<string, unknown>): PromptResult {
         text: `Create a test-first implementation plan using active tooling.
 
 Step 1: Call:
-- agent action:"plan" brief:"${brief.replace(/"/g, '\\"')}"
+- agent action:"plan" brief:"${briefPayload.replace(/"/g, '\\"')}"
 
 Step 2: Use the returned JSON plan:
 - Keep exactly 3 tests in the plan.
 - Respect branch proposal and conventions.
 - Keep the scope to one vertical slice.
+- Token mode: ${tokenMode}.
 
 Step 3: If the plan is approved, implement Red -> Green -> Refactor and then run tdd_verify.
 
@@ -348,17 +373,30 @@ Do not paste large methodology documents; rely on tool output.`
 }
 
 function handleTddImplementPrompt(args: Record<string, unknown>): PromptResult {
-  const plan = (args.plan as string) || '<paste approved plan here>';
+  const tokenMode = ((args.tokenMode as string) || 'compact').toLowerCase();
+  const plan = (args.plan as string) || '';
+  const planSummary = (args.planSummary as string) || '';
+  const ticket = (args.ticket as string) || '<TICKET-KEY>';
+  const branch = (args.branch as string) || '<feature/TICKET-slice>';
+  const tests = (args.tests as string) || '<3 planned tests>';
+  const fallbackPlanDigest = compactText(plan, tokenMode === 'verbose' ? 3500 : tokenMode === 'balanced' ? 1800 : 900);
+  const planDigest = compactText(planSummary || fallbackPlanDigest || '<paste approved plan digest here>', tokenMode === 'verbose' ? 2200 : tokenMode === 'balanced' ? 1200 : 700);
 
   return {
     messages: [{
       role: 'user',
       content: {
         type: 'text',
-        text: `Implement the approved plan.
+        text: `Implement the approved plan using compact context.
 
-Approved plan:
-${plan}
+Approved plan digest:
+${planDigest}
+
+Execution context:
+- Ticket: ${ticket}
+- Branch: ${branch}
+- Planned tests: ${tests}
+- Token mode: ${tokenMode}
 
 Execution requirements:
 1) Run Red -> Green -> Refactor for each of the 3 tests.

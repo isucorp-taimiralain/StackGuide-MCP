@@ -12,6 +12,7 @@ import { ServerState, ToolResponse, jsonResponse, errorResponse } from './types.
 import { logger } from '../utils/logger.js';
 import { SetupInputSchema, validate } from '../utils/validation.js';
 import { analyzeStructure, analyzeConfigurations, analyzeDependencies } from '../services/intelligence/index.js';
+import { previewMcpTemplateSync } from '../services/mcpConfig.js';
 
 // Recommendations based on project type
 const PROJECT_RECOMMENDATIONS: Record<string, {
@@ -76,6 +77,35 @@ function getRecommendations(projectType: string) {
   return PROJECT_RECOMMENDATIONS[projectType] || PROJECT_RECOMMENDATIONS['default'];
 }
 
+const DEFAULT_MODEL = 'model-auto';
+const DEFAULT_TOKEN_MODE = 'compact';
+const DEFAULT_SYNC_TARGETS: Array<'cursor' | 'root'> = ['cursor', 'root'];
+
+function buildInitCommandPreview(args: {
+  projectPath: string;
+  projectType?: string;
+  model: string;
+  tokenMode: string;
+  integrations: string[];
+  syncTargets: Array<'cursor' | 'root'>;
+  jiraProjectKey?: string;
+  jiraIssueType: string;
+}): string {
+  const parts = [
+    'init action:"full"',
+    `path:"${args.projectPath}"`,
+    ...(args.projectType ? [`type:"${args.projectType}"`] : []),
+    `model:"${args.model}"`,
+    `tokenMode:"${args.tokenMode}"`,
+    `integrations:${JSON.stringify(args.integrations)}`,
+    `mcpSyncTargets:${JSON.stringify(args.syncTargets)}`,
+    'applyMcpTemplates:true',
+    ...(args.jiraProjectKey ? [`jiraProjectKey:"${args.jiraProjectKey}"`] : []),
+    `jiraIssueType:"${args.jiraIssueType}"`,
+  ];
+  return parts.join(' ');
+}
+
 export async function handleSetup(
   args: unknown,
   state: ServerState
@@ -88,10 +118,87 @@ export async function handleSetup(
     return errorResponse('Invalid input', validation.error);
   }
   
-  const { path: projectPath = '.', type: projectType } = validation.data!;
+  const {
+    path: projectPath = '.',
+    type: projectType,
+    enableAdaptiveTdd = false,
+    model,
+    tokenMode,
+    integrations,
+    mcpSyncTargets,
+    jiraProjectKey,
+    jiraIssueType,
+  } = validation.data!;
   const resolvedPath = projectPath === '.' ? process.cwd() : projectPath;
 
-  logger.debug('Setup started', { projectPath: resolvedPath, projectType });
+  const adaptiveRequested = enableAdaptiveTdd
+    || !!model
+    || !!tokenMode
+    || !!jiraProjectKey
+    || !!jiraIssueType
+    || !!integrations?.length
+    || !!mcpSyncTargets?.length;
+
+  const selectedIntegrations = integrations || [];
+  const selectedSyncTargets = (mcpSyncTargets && mcpSyncTargets.length > 0 ? mcpSyncTargets : DEFAULT_SYNC_TARGETS)
+    .filter(target => target === 'cursor' || target === 'root');
+  const resolvedModel = (model || DEFAULT_MODEL).trim() || DEFAULT_MODEL;
+  const resolvedTokenMode = tokenMode || DEFAULT_TOKEN_MODE;
+  const resolvedIssueType = (jiraIssueType || 'Task').trim() || 'Task';
+
+  logger.debug('Setup started', {
+    projectPath: resolvedPath,
+    projectType,
+    adaptiveRequested,
+    selectedIntegrations,
+  });
+
+  if (adaptiveRequested) {
+    const missingFields: string[] = [];
+    if (!(model && model.trim())) {
+      missingFields.push('model');
+    }
+    if (selectedIntegrations.length === 0) {
+      missingFields.push('integrations');
+    }
+
+    if (missingFields.length > 0) {
+      return jsonResponse({
+        success: false,
+        message: 'Adaptive TDD setup needs more input.',
+        wizard: {
+          step: '2/3 - Adaptive TDD',
+          status: 'needs_input',
+          question: 'Provide model and integration preferences before applying project configuration.',
+          missingFields,
+          options: {
+            tokenMode: ['compact', 'balanced', 'verbose'],
+            integrations: ['jira', 'github', 'gitlab'],
+            mcpSyncTargets: ['cursor', 'root'],
+          },
+          hint: 'Use: setup enableAdaptiveTdd:true model:"<model>" integrations:["jira","github"] tokenMode:"compact"',
+        },
+      });
+    }
+  }
+
+  const adaptivePreview = adaptiveRequested
+    ? {
+      model: resolvedModel,
+      tokenMode: resolvedTokenMode,
+      jiraDefaults: {
+        descriptionField: 'description',
+        summarySource: 'first_line_main_description',
+        issueType: resolvedIssueType,
+        projectKey: jiraProjectKey || null,
+      },
+      mcpPreview: previewMcpTemplateSync(
+        resolvedPath,
+        selectedIntegrations,
+        selectedSyncTargets
+      ),
+    }
+    : undefined;
 
   // If type is specified, use it directly
   if (projectType && SUPPORTED_PROJECTS[projectType]) {
@@ -126,10 +233,23 @@ export async function handleSetup(
           vsCodeExtensions: recommendations.extensions,
           tips: recommendations.tips
         },
+        ...(adaptivePreview ? { adaptiveTdd: adaptivePreview } : {}),
         nextSteps: [
           `📋 Run \`context\` to see ${state.loadedRules.length} loaded rules`,
           `🔍 Run \`review\` to analyze your code`,
           `🏥 Run \`health\` to check project health`,
+          ...(adaptivePreview
+            ? [buildInitCommandPreview({
+              projectPath: resolvedPath,
+              projectType,
+              model: resolvedModel,
+              tokenMode: resolvedTokenMode,
+              integrations: selectedIntegrations,
+              syncTargets: selectedSyncTargets,
+              jiraProjectKey: jiraProjectKey || undefined,
+              jiraIssueType: resolvedIssueType,
+            })]
+            : []),
           ...recommendations.commands.map(cmd => `💡 Try: \`${cmd}\``)
         ]
       }
@@ -153,7 +273,9 @@ export async function handleSetup(
           label: val.name,
           description: val.description
         })),
-        hint: 'Use: setup type:"react-typescript"',
+        hint: adaptiveRequested
+          ? 'Use: setup type:"react-typescript" enableAdaptiveTdd:true model:"<model>" integrations:["jira"]'
+          : 'Use: setup type:"react-typescript"',
         availableTypes: Object.keys(SUPPORTED_PROJECTS)
       }
     });
@@ -248,11 +370,24 @@ export async function handleSetup(
         vsCodeExtensions: recommendations.extensions,
         tips: recommendations.tips
       },
+      ...(adaptivePreview ? { adaptiveTdd: adaptivePreview } : {}),
       nextSteps: [
         `📋 Run \`context\` to see ${state.loadedRules.length} loaded rules`,
         `🔍 Run \`review\` to analyze your code`,
         `🧠 Run \`analyze\` for project intelligence`,
         `🏥 Run \`health\` to check project health`,
+        ...(adaptivePreview
+          ? [buildInitCommandPreview({
+            projectPath: resolvedPath,
+            projectType: detectedType,
+            model: resolvedModel,
+            tokenMode: resolvedTokenMode,
+            integrations: selectedIntegrations,
+            syncTargets: selectedSyncTargets,
+            jiraProjectKey: jiraProjectKey || undefined,
+            jiraIssueType: resolvedIssueType,
+          })]
+          : []),
         ...recommendations.commands.map(cmd => `💡 Try: \`${cmd}\``)
       ]
     }

@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => {
   const trackerApi = {
     readTicket: vi.fn(),
     listTickets: vi.fn(),
+    createJiraTicket: vi.fn(),
   };
   const TrackerService = vi.fn(function TrackerServiceMock() {
     return trackerApi;
@@ -126,6 +127,22 @@ const config = {
     commitConvention: 'conventional',
     requireTicketInBranch: true,
   },
+  automation: {
+    tdd: {
+      preferredModel: 'model-auto',
+      tokenMode: 'compact',
+    },
+    jira: {
+      issueType: 'Task',
+      summarySource: 'first_line_main_description',
+      descriptionField: 'description',
+      strictTemplate: true,
+    },
+    mcp: {
+      integrations: ['jira'],
+      syncTargets: ['cursor', 'root'],
+    },
+  },
   metadata: {
     generatedAt: new Date().toISOString(),
     projectType: 'react-typescript',
@@ -182,6 +199,18 @@ describe('agent handler', () => {
       type: 'Story',
       status: 'In Progress',
       url: 'https://example/ticket/PROJ-1',
+      gaps: [],
+    });
+    mocks.trackerApi.createJiraTicket.mockResolvedValue({
+      key: 'PROJ-9',
+      title: 'Create from description',
+      description: 'MAIN DESCRIPTION',
+      acceptanceCriteria: ['Layout should match prototype'],
+      labels: ['ui'],
+      priority: 'Medium',
+      type: 'Task',
+      status: 'To Do',
+      url: 'https://example/ticket/PROJ-9',
       gaps: [],
     });
     mocks.vcsApi.generateBranchName.mockReturnValue('feature/PROJ-1-intake');
@@ -243,6 +272,35 @@ describe('agent handler', () => {
     expect(data.action).toBe('verify');
     expect(data.passed).toBe(true);
     expect(data.blockers).toEqual([]);
+  });
+
+  it('creates jira ticket with create_ticket action', async () => {
+    const response = await handleAgent({
+      action: 'create_ticket',
+      mainDescription: 'Layout update for account area',
+      projectKey: 'PROJ',
+      destinationView: 'resources/frontend/account.blade.php',
+      acceptanceCriteria: ['Avatar menu opens My Account'],
+    }, state);
+    const data = parseResponse(response);
+
+    expect(data.action).toBe('create_ticket');
+    expect(data.status).toBe('created');
+    expect(mocks.trackerApi.createJiraTicket).toHaveBeenCalled();
+  });
+
+  it('creates jira ticket during intake when createFromDescription is true', async () => {
+    const response = await handleAgent({
+      action: 'intake',
+      createFromDescription: true,
+      mainDescription: 'Profile page should be reused as My Account',
+      projectKey: 'PROJ',
+    }, state);
+    const data = parseResponse(response);
+
+    expect(data.action).toBe('intake');
+    expect(data.status).toBe('created');
+    expect(mocks.trackerApi.createJiraTicket).toHaveBeenCalled();
   });
 
   it('executes release and can create tag and PR', async () => {
