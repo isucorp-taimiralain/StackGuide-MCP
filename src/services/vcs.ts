@@ -153,6 +153,44 @@ export class VcsService {
     return name;
   }
 
+  resolveMergeBase(): string {
+    const candidates = [
+      this.config.mergeBaseBranch,
+      this.config.defaultBranch,
+      'development',
+      'develop',
+      'main',
+      'master',
+    ];
+
+    for (const candidate of candidates) {
+      if (!candidate) {
+        continue;
+      }
+      try {
+        return this.runGit(['merge-base', 'HEAD', candidate]);
+      } catch {
+        // Try next candidate.
+      }
+    }
+
+    try {
+      return this.runGit(['rev-parse', 'HEAD~1']);
+    } catch {
+      return this.runGit(['rev-parse', 'HEAD']);
+    }
+  }
+
+  getChangedFilesOnBranch(): string[] {
+    try {
+      const base = this.resolveMergeBase();
+      const diff = this.runGit(['diff', '--name-only', `${base}..HEAD`]);
+      return diff.split('\n').filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+
   getChangedFiles(includeStaged = true): string[] {
     const files = new Set<string>();
 
@@ -174,6 +212,10 @@ export class VcsService {
       } catch {
         // Ignore.
       }
+    }
+
+    for (const file of this.getChangedFilesOnBranch()) {
+      files.add(file);
     }
 
     return Array.from(files);

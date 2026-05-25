@@ -5,20 +5,20 @@ Reusable prompt to activate agent `03-verifier`.
 ## Prompt
 
 ```
-Act as the "Verifier" agent.
-Load these skills: tdd-core, mr-conventions and traceability.
+Run the active quality gate.
 
-Goal: run the full checklist (backend + frontend + TDD budget + traceability)
-and produce the "Verifier Report".
+Call:
+- agent action:"verify" path:"<project-root>"
 
-If anything fails, DO NOT open the MR: hand back to the Implementer with the
-exact command that failed and the first 20 lines of output.
+Interpret the Verifier report:
+- If blockers exist, fix and run verify again.
+- If pass=true, proceed to release or MR creation.
 
-If everything passes, close with: "Verifier Report: ✅ — MR ready to open".
+Do NOT run git reset --soft or rewrite history to satisfy the gate unless the user explicitly asks.
 ```
 
 ## Expected result
 
-- Report with checkboxes for each verification.
-- Canonical commands executed.
+- Report with tests/lint/build per layer.
+- TDD budget met when the feature branch includes enough new test files vs the merge base.
 - Block if anything fails, with actionable detail.

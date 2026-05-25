@@ -34,6 +34,8 @@ export interface VcsConfig {
   projectId?: string;
   defaultBranch: string;
   branchPattern: string;
+  /** Preferred ref for merge-base when counting branch diff (verify TDD budget). */
+  mergeBaseBranch?: string;
 }
 
 export interface LayerCommands {
@@ -58,6 +60,10 @@ export interface WorkflowConfig {
   testBudget: number;
   commitConvention: 'conventional' | 'none';
   requireTicketInBranch: boolean;
+  /** Git ref for verify merge-base (e.g. development). Falls back to defaultBranch. */
+  verifyBaseBranch?: string;
+  /** When true, Implementer prompt forbids git commit until verify passes. */
+  implementerLeavesChangesUncommitted?: boolean;
 }
 
 export interface TddAutomationConfig {
@@ -478,11 +484,17 @@ function withConfigDefaults(config: AgentProjectConfig): AgentProjectConfig {
     jiraProjectKey: config.tracker.projectKey,
   });
 
+  const mergeBaseBranch = config.workflow.verifyBaseBranch || config.vcs.mergeBaseBranch;
+
   return {
     ...config,
     tracker: {
       ...config.tracker,
       defaultIssueType: config.tracker.defaultIssueType || automation.jira.issueType,
+    },
+    vcs: {
+      ...config.vcs,
+      mergeBaseBranch,
     },
     automation,
   };

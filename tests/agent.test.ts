@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => {
 
   const vcsApi = {
     getChangedFiles: vi.fn(),
+    getChangedFilesOnBranch: vi.fn(),
+    resolveMergeBase: vi.fn(),
     getCurrentBranch: vi.fn(),
     validateBranchName: vi.fn(),
     getRecentCommitMessages: vi.fn(),
@@ -215,6 +217,7 @@ describe('agent handler', () => {
     });
     mocks.vcsApi.generateBranchName.mockReturnValue('feature/PROJ-1-intake');
     mocks.vcsApi.getChangedFiles.mockReturnValue(['frontend/src/app.test.ts']);
+    mocks.vcsApi.resolveMergeBase.mockReturnValue('base123');
     mocks.vcsApi.getCurrentBranch.mockReturnValue('feature/PROJ-1-intake');
     mocks.vcsApi.validateBranchName.mockReturnValue(true);
     mocks.vcsApi.getRecentCommitMessages.mockReturnValue(['feat(core): add intake']);
@@ -272,6 +275,39 @@ describe('agent handler', () => {
     expect(data.action).toBe('verify');
     expect(data.passed).toBe(true);
     expect(data.blockers).toEqual([]);
+    expect(mocks.vcsApi.resolveMergeBase).toHaveBeenCalled();
+    expect(mocks.vcsApi.getCommitsSince).toHaveBeenCalledWith('base123');
+  });
+
+  it('verify ignores merge commits on the feature branch', async () => {
+    mocks.vcsApi.getCommitsSince.mockReturnValue([
+      {
+        hash: 'merge1',
+        subject: "Merge branch 'feature/x' into 'development'",
+        author: 'Bot',
+        date: '2026-01-01',
+        type: null,
+        scope: null,
+        isBreaking: false,
+        ticketKey: null,
+      },
+      {
+        hash: 'feat1',
+        subject: 'feat(core): add logging',
+        author: 'Dev',
+        date: '2026-01-02',
+        type: 'feat',
+        scope: 'core',
+        isBreaking: false,
+        ticketKey: 'PROJ-1',
+      },
+    ]);
+
+    const response = await handleAgent({ action: 'verify' }, state);
+    const data = parseResponse(response);
+
+    expect(data.passed).toBe(true);
+    expect(data.traceability).toMatchObject({ commitConvention: true });
   });
 
   it('creates jira ticket with create_ticket action', async () => {

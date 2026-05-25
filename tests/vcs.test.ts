@@ -10,6 +10,8 @@ describe('VcsService', () => {
       if (key === 'branch --show-current') return 'feature/PROJ-123-intake';
       if (key === 'diff --name-only HEAD') return 'src/a.ts\nsrc/b.ts';
       if (key === 'diff --name-only --cached') return 'src/b.ts\nsrc/c.test.ts';
+      if (key === 'merge-base HEAD main') return 'base111';
+      if (key === 'diff --name-only base111..HEAD') return 'tests/feature.test.ts\nsrc/d.ts';
       if (key.startsWith('log --pretty=format:%H%x1f%s%x1f%an%x1f%aI ')) {
         return [
           'abc123\x1ffeat(api): add intake endpoint\x1fJane\x1f2026-01-01T00:00:00.000Z',
@@ -56,7 +58,41 @@ describe('VcsService', () => {
       runGit
     );
 
-    expect(service.getChangedFiles(true)).toEqual(['src/a.ts', 'src/b.ts', 'src/c.test.ts']);
+    expect(service.getChangedFiles(true)).toEqual([
+      'src/a.ts',
+      'src/b.ts',
+      'src/c.test.ts',
+      'tests/feature.test.ts',
+      'src/d.ts',
+    ]);
+  });
+
+  it('includes branch diff files when the working tree is clean', () => {
+    runGit = vi.fn((args: string[]) => {
+      const key = args.join(' ');
+      if (key === 'diff --name-only HEAD') return '';
+      if (key === 'diff --name-only --cached') return '';
+      if (key === 'merge-base HEAD development') return 'base222';
+      if (key === 'diff --name-only base222..HEAD') {
+        return 'apps/data-pipeline/tests/unit/test_ccaw_23_logging.py';
+      }
+      return '';
+    });
+
+    const service = new VcsService(
+      {
+        type: 'git',
+        defaultBranch: 'development',
+        branchPattern: 'feature/<TICKET>-<slug>',
+      },
+      '/tmp/project',
+      { get: vi.fn(), post: vi.fn() } as never,
+      runGit
+    );
+
+    expect(service.getChangedFiles(true)).toEqual([
+      'apps/data-pipeline/tests/unit/test_ccaw_23_logging.py',
+    ]);
   });
 
   it('parses commits since reference', () => {

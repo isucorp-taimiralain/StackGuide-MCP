@@ -227,9 +227,15 @@ function detectChangedTestFiles(changedFiles: string[]): string[] {
   );
 }
 
+function isMergeCommitMessage(message: string): boolean {
+  return /^Merge\b/i.test(message.trim());
+}
+
 function validateConventionalCommits(messages: string[]): { valid: boolean; invalidMessages: string[] } {
   const pattern = /^(feat|fix|test|refactor|chore|docs|style|perf|ci|build|revert)(\([^)]+\))?(!)?:\s.+/i;
-  const invalid = messages.filter(message => !pattern.test(message));
+  const invalid = messages
+    .filter(message => !isMergeCommitMessage(message))
+    .filter(message => !pattern.test(message));
   return {
     valid: invalid.length === 0,
     invalidMessages: invalid,
@@ -550,9 +556,12 @@ export async function handleAgent(
         ? vcsService.validateBranchName(currentBranch)
         : true;
 
-      const recentCommitMessages = vcsService.getRecentCommitMessages(20);
+      const mergeBase = vcsService.resolveMergeBase();
+      const branchCommitMessages = vcsService
+        .getCommitsSince(mergeBase)
+        .map(commit => commit.subject);
       const commitCheck = config.workflow.commitConvention === 'conventional'
-        ? validateConventionalCommits(recentCommitMessages)
+        ? validateConventionalCommits(branchCommitMessages)
         : { valid: true, invalidMessages: [] };
 
       const blockers: string[] = [];

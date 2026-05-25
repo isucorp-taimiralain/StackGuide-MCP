@@ -18,6 +18,14 @@ Initial baseline: **3 tests per slice**.
 
 **E2E only** when it adds real value (critical flows, cross-layer risk). If a slice does not apply the baseline, it must be explicitly justified in the MR.
 
+## Implement → Verify → Commit
+
+1. **Implementer**: code + tests, **no git commit**. Working tree may be clean or dirty.
+2. **Verifier**: `agent action:"verify"` — TDD budget uses branch diff vs configured base branch (e.g. `development`).
+3. **Human / Releaser**: conventional commit(s) and MR **after** verify passes.
+
+Never use `git reset --soft` only to trick the verifier.
+
 ## Definition of Done (DoD)
 
 - All tests green locally **and** in CI.
@@ -27,7 +35,7 @@ Initial baseline: **3 tests per slice**.
 - Migrations reversible and tested against the real database engine.
 - MR with title `<TICKET-KEY>: <scope>`, Verifier checklist and link to the ticket.
 
-## Commit conventions
+## Commit conventions (after verify)
 
 Conventional Commits format:
 
@@ -37,12 +45,6 @@ Conventional Commits format:
 - `refactor:` internal change without behavior shift.
 - `chore:` maintenance.
 - `docs:` documentation.
-
-Examples:
-
-- `test(backend): FooService rejects empty payload (PROJ-123)`
-- `feat(frontend): customer registration form (PROJ-123)`
-- `refactor(backend): extract FooService from FooController (PROJ-123)`
 
 ## Expected agent behavior
 

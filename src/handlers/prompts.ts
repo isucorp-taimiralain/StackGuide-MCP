@@ -400,8 +400,9 @@ Execution context:
 
 Execution requirements:
 1) Run Red -> Green -> Refactor for each of the 3 tests.
-2) Keep commits traceable to the ticket and follow conventional commits.
-3) After implementation, call:
+2) Do NOT run git commit, git push, or rewrite branch history unless the user explicitly asks.
+3) Leave all changes in the working tree (staged or unstaged) for the Verifier.
+4) After implementation, call:
 - agent action:"verify"
 
 Use the verifier output as the release gate.`
