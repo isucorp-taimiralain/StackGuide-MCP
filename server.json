@@ -1,9 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.isucorp-taimiralain/stackguide-mcp",
+  "name": "io.github.taimiralain/stackguide-mcp",
   "description": "Dynamic context loading for AI assistants with TDD workflow and AST analysis",
   "repository": {
-    "url": "https://github.com/isucorp-taimiralain/StackGuide-MCP",
+    "url": "https://github.com/taimiralain/StackGuide-MCP",
     "source": "github"
   },
   "version": "4.2.0",

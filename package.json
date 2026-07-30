@@ -33,7 +33,7 @@
   ],
   "author": "Taimir Alain Morales Roche <taimiralain>",
   "license": "GPL-3.0",
-  "mcpName": "io.github.isucorp-taimiralain/stackguide-mcp",
+  "mcpName": "io.github.taimiralain/stackguide-mcp",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "better-sqlite3": "^12.5.0",
