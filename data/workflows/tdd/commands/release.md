@@ -1,31 +1,43 @@
-# Command: Release — Publish a version
+# Command: Release — Publish MR / version
 
 Reusable prompt to activate agent `04-releaser`.
+OJ-aware: ships evidence from Verify; no separate OJ command. Policy: `.stackguide/oj.md`.
 
 ## Prompt
 
 ```
 Act as the "Releaser" agent.
-Load these skills: mr-conventions and stack-postgres-migrations.
+Load skills: mr-conventions, oj-health, and stack-postgres-migrations if needed.
 
-Target version: vX.Y.Z
+Context:
+- Default: open the feature MR to the base branch after Verifier PASS.
+- SemVer tag only when the user asks for vX.Y.Z.
 
-Goal:
-1. Preflight: confirm green pipeline on main and no blocker MRs.
-2. Determine correct SemVer from commits in range.
-3. Generate release notes grouped by type.
-4. Commit release artifacts if any (changelog/versioning).
-5. Push the release branch and the tag.
-6. Create a Release with the tag and final notes.
-7. Document deployment steps and rollback if there are migrations.
+## Feature MR (default after verify)
+1. Confirm Verifier Report includes:
+   - OJ (changed vs <base-branch>): PASS | skipped
+   - Ponytail line
+   FAIL → stop; send back to verify/implement. Do not open the MR.
+2. Open/update the MR targeting the base branch. In Test plan paste:
+   - [ ] OJ (changed vs <base-branch>): PASS | FAIL | skipped
+   - [ ] Ponytail review: done | n/a
+3. If the branch adds contract exceptions[], list each in Out of scope with cleanup PR + expires.
+4. Do not add OJ CI/scripts outside .stackguide.
+5. Do not ship a .repo-health.json loosen without an explicit follow-up.
 
-Do not tag on red CI. Do not force push or destructive rebase.
+## SemVer tag (only if user set Target version: vX.Y.Z)
+1. Preflight: green pipeline on base branch; no blocker MRs.
+2. SemVer from conventional commits; notes grouped by type.
+3. Commit release artifacts if any; push branch + annotated tag; create Release.
+4. Never tag on red CI; never force push.
 
-Close with: "Release vX.Y.Z published" only when the tag exists and the Release is created.
+Close with:
+- Feature MR: "MR ready / opened — OJ evidence included"
+- Tag: "Release vX.Y.Z published" only when tag + Release exist.
 ```
 
 ## Expected result
 
-- Complete release notes.
-- Evidence of full execution (commit and push done, remote tag exists, release created).
-- Breaking changes list (if any) with migration path.
+- MR (or release) with OJ + Ponytail evidence from the same verify → release chain.
+- No contract loosen without follow-up.
+- No new commands; release stays the fifth step.

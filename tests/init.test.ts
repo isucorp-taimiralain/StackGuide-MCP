@@ -88,6 +88,7 @@ describe('init handler', () => {
       expect(skills).toContain('tdd-core.md');
       expect(skills).toContain('mr-conventions.md');
       expect(skills).toContain('traceability.md');
+      expect(skills).toContain('oj-health.md');
     });
 
     it('should include stack-specific skills when type is forced', async () => {
@@ -134,6 +135,25 @@ describe('init handler', () => {
       const commandsDir = path.join(tmpDir, '.stackguide', 'commands');
       const commands = fs.readdirSync(commandsDir);
       expect(commands.length).toBe(5);
+    });
+
+    it('should include executable scripts', async () => {
+      await handleInit({ action: 'full', path: tmpDir }, mockState);
+      const scriptsDir = path.join(tmpDir, '.stackguide', 'scripts');
+      const scripts = fs.readdirSync(scriptsDir);
+      expect(scripts).toContain('oj-verify.sh');
+      expect(scripts).toContain('tdd-feature-branch.sh');
+      for (const script of scripts) {
+        const mode = fs.statSync(path.join(scriptsDir, script)).mode;
+        expect(mode & 0o111).not.toBe(0);
+      }
+    });
+
+    it('should include the OJ policy document', async () => {
+      await handleInit({ action: 'full', path: tmpDir }, mockState);
+      const ojPolicy = path.join(tmpDir, '.stackguide', 'oj.md');
+      expect(fs.existsSync(ojPolicy)).toBe(true);
+      expect(fs.readFileSync(ojPolicy, 'utf-8')).toContain('OJ in StackGuide');
     });
 
     it('should generate .stackguide/config.json', async () => {

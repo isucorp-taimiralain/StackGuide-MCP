@@ -14,9 +14,9 @@ import { ServerState } from './types.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKFLOW_ROOT = path.resolve(__dirname, '../../data/workflows/tdd');
 
-type WorkflowCategory = 'agents' | 'skills' | 'hooks' | 'commands';
+type WorkflowCategory = 'agents' | 'skills' | 'hooks' | 'commands' | 'scripts';
 
-const VALID_CATEGORIES: WorkflowCategory[] = ['agents', 'skills', 'hooks', 'commands'];
+const VALID_CATEGORIES: WorkflowCategory[] = ['agents', 'skills', 'hooks', 'commands', 'scripts'];
 
 interface WorkflowItem {
   name: string;
@@ -79,6 +79,7 @@ export async function handleWorkflow(
         description: 'TDD agentic workflow with 5 roles: Intake → Planner → Implementer → Verifier → Releaser',
         categories: all,
         usage: 'Use workflow action:"agent" name:"tdd-planner" to load a specific role on demand.',
+        policy: 'Load the OJ health-gate policy with workflow action:"skill" name:"oj-health" (runner: scripts/oj-verify.sh).',
       });
     }
 
@@ -90,7 +91,7 @@ export async function handleWorkflow(
     }
 
     case 'skill': {
-      if (!name) return errorResponse('Missing "name" parameter.', 'Available: tdd-core, stack-laravel, stack-react, stack-postgres-migrations, mr-conventions, traceability');
+      if (!name) return errorResponse('Missing "name" parameter.', 'Available: tdd-core, oj-health, stack-laravel, stack-react, stack-postgres-migrations, mr-conventions, traceability');
       const content = loadFile('skills', name);
       if (!content) return errorResponse(`Skill "${name}" not found.`, 'Use workflow action:"list" category:"skills" to see available skills.');
       return textResponse(content);
@@ -110,10 +111,23 @@ export async function handleWorkflow(
       return textResponse(content);
     }
 
+    case 'script': {
+      if (!name) return errorResponse('Missing "name" parameter.', 'Available: oj-verify, tdd-feature-branch');
+      const content = loadFile('scripts', name);
+      if (!content) return errorResponse(`Script "${name}" not found.`, 'Use workflow action:"list" category:"scripts" to see available scripts.');
+      return textResponse(content);
+    }
+
+    case 'policy': {
+      const policyPath = path.join(WORKFLOW_ROOT, 'oj.md');
+      if (!fs.existsSync(policyPath)) return errorResponse('OJ policy file not found.');
+      return textResponse(fs.readFileSync(policyPath, 'utf-8'));
+    }
+
     default:
       return errorResponse(
         `Unknown action "${action}".`,
-        'Valid actions: list, agent, skill, command, hook'
+        'Valid actions: list, agent, skill, command, hook, script, policy'
       );
   }
 }

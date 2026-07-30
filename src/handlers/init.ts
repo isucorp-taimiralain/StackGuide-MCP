@@ -27,6 +27,7 @@ interface StackMapping {
   skills: string[];
   hooks: string[];
   commands: string[];
+  scripts: string[];
 }
 
 const CORE_FILES: StackMapping = {
@@ -37,9 +38,10 @@ const CORE_FILES: StackMapping = {
     '03-verifier.md',
     '04-releaser.md',
   ],
-  skills: ['tdd-core.md', 'mr-conventions.md', 'traceability.md'],
+  skills: ['tdd-core.md', 'mr-conventions.md', 'traceability.md', 'oj-health.md'],
   hooks: ['check-branch-name.sh', 'check-ticket-key.sh', 'check-commit-msg.sh'],
   commands: ['intake.md', 'plan.md', 'implement.md', 'verify.md', 'release.md'],
+  scripts: ['oj-verify.sh', 'tdd-feature-branch.sh'],
 };
 
 const STACK_SKILLS: Record<string, string[]> = {
@@ -108,20 +110,28 @@ function scaffoldProject(
     }
   }
 
-  const readmeSrc = path.join(WORKFLOW_ROOT, 'README.md');
-  const readmeDest = path.join(destRoot, 'README.md');
-  if (fs.existsSync(readmeSrc)) {
-    if (copyFile(readmeSrc, readmeDest)) {
-      copied.push('README.md');
+  for (const rootDoc of ['README.md', 'oj.md']) {
+    const docSrc = path.join(WORKFLOW_ROOT, rootDoc);
+    const docDest = path.join(destRoot, rootDoc);
+    if (fs.existsSync(docSrc)) {
+      if (copyFile(docSrc, docDest)) {
+        copied.push(rootDoc);
+      }
     }
   }
 
-  if (files(path.join(destRoot, 'hooks')).length > 0) {
-    const hookFiles = fs.readdirSync(path.join(destRoot, 'hooks')).filter(f => f.endsWith('.sh'));
-    for (const h of hookFiles) {
-      try {
-        fs.chmodSync(path.join(destRoot, 'hooks', h), 0o755);
-      } catch { /* non-critical */ }
+  for (const scriptDir of ['hooks', 'scripts']) {
+    const dir = path.join(destRoot, scriptDir);
+    if (files(dir).length > 0) {
+      const shellFiles = fs.readdirSync(dir).filter(f => f.endsWith('.sh'));
+      for (const h of shellFiles) {
+        const filePath = path.join(dir, h);
+        try {
+          // Skip symlinks instead of chmodding their targets (lchmodSync is macOS-only).
+          if (fs.lstatSync(filePath).isSymbolicLink()) continue;
+          fs.chmodSync(filePath, 0o755);
+        } catch { /* non-critical */ }
+      }
     }
   }
 
@@ -289,7 +299,7 @@ export async function handleInit(
         });
       }
 
-      const categories = ['agents', 'skills', 'hooks', 'commands'];
+      const categories = ['agents', 'skills', 'hooks', 'commands', 'scripts'];
       const structure: Record<string, string[]> = {};
       for (const cat of categories) {
         structure[cat] = files(path.join(sgDir, cat));

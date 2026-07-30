@@ -21,6 +21,18 @@ Typical format: `PROJ-123`, `ENG-45`, `#87`. Mandatory in:
    - Links to Confluence / Notion, designs or related tickets.
 3. Produces a **normalized brief** for the Planner.
 4. The Planner defines the vertical slice and the 3 target tests.
+5. **Planner or Implementer** creates `feature/<TICKET-KEY>-<slug>` via `.stackguide/scripts/tdd-feature-branch.sh` as soon as the key is known.
+
+## Branch creation
+
+```bash
+bash .stackguide/scripts/tdd-feature-branch.sh PROJ-123 customer-onboarding
+# → feature/PROJ-123-customer-onboarding
+```
+
+- Skips if already on `feature/<TICKET-KEY>-*`.
+- Checks out the existing local branch if it already exists.
+- Otherwise branches from the configured base branch (`vcs.defaultBranch`, default `development`).
 
 ## What the Intake agent does NOT do
 

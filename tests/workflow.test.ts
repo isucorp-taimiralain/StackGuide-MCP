@@ -28,6 +28,7 @@ describe('workflow handler', () => {
       expect(categories).toHaveProperty('skills');
       expect(categories).toHaveProperty('hooks');
       expect(categories).toHaveProperty('commands');
+      expect(categories).toHaveProperty('scripts');
     });
 
     it('should list a specific category', async () => {
@@ -128,6 +129,57 @@ describe('workflow handler', () => {
       const result = await handleWorkflow({ action: 'hook', name: 'check-commit-msg' }, mockState);
       const text = result.content[0].text;
       expect(text).toContain('Conventional Commits');
+    });
+  });
+
+  describe('script action', () => {
+    it('should list scripts', async () => {
+      const result = await handleWorkflow({ action: 'list', category: 'scripts' }, mockState);
+      const data = parseResponse(result) as Record<string, unknown>;
+      expect(data).toHaveProperty('category', 'scripts');
+      expect(data.items).toContain('oj-verify');
+      expect(data.items).toContain('tdd-feature-branch');
+    });
+
+    it('should load the oj-verify script', async () => {
+      const result = await handleWorkflow({ action: 'script', name: 'oj-verify' }, mockState);
+      const text = result.content[0].text;
+      expect(text).toContain('#!/usr/bin/env bash');
+      expect(text).toContain('OJ_CHANGED_BASE');
+    });
+
+    it('should load the tdd-feature-branch script', async () => {
+      const result = await handleWorkflow({ action: 'script', name: 'tdd-feature-branch' }, mockState);
+      const text = result.content[0].text;
+      expect(text).toContain('#!/usr/bin/env bash');
+      expect(text).toContain('feature/');
+    });
+
+    it('should return error for unknown script', async () => {
+      const result = await handleWorkflow({ action: 'script', name: 'nonexistent' }, mockState);
+      const data = parseResponse(result) as Record<string, unknown>;
+      expect(data).toHaveProperty('error');
+    });
+
+    it('should return error when name is missing', async () => {
+      const result = await handleWorkflow({ action: 'script' }, mockState);
+      const data = parseResponse(result) as Record<string, unknown>;
+      expect(data).toHaveProperty('error');
+    });
+  });
+
+  describe('oj content', () => {
+    it('should load the oj-health skill', async () => {
+      const result = await handleWorkflow({ action: 'skill', name: 'oj-health' }, mockState);
+      const text = result.content[0].text;
+      expect(text).toContain('oj-health');
+      expect(text).toContain('oj-verify.sh');
+    });
+
+    it('should serve the OJ policy', async () => {
+      const result = await handleWorkflow({ action: 'policy' }, mockState);
+      const text = result.content[0].text;
+      expect(text).toContain('OJ in StackGuide');
     });
   });
 

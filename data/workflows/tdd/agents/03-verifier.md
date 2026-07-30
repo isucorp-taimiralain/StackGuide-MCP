@@ -17,6 +17,7 @@
 - `tdd-core` — test baseline.
 - `mr-conventions` — MR conventions.
 - `traceability` — branch and title conventions.
+- `oj-health` — OJ changed-scope gate (`.stackguide/oj.md`).
 
 ## Checklist
 
@@ -61,6 +62,24 @@ If the project defines official lint/typecheck commands, add them to the checkli
 
 The scripts under `hooks/` help validate branch/commit locally.
 
+### OJ repository health (changed-scope gate)
+
+After lint/test/build/typecheck and the TDD budget:
+
+```bash
+bash .stackguide/scripts/oj-verify.sh
+```
+
+- Scope: **changed** vs the base branch (`OJ_CHANGED_BASE`, default `development`; never `--full` as MR hard gate).
+- FAIL → **block** MR; hand back with rule id + path + fix.
+- skipped (`127`) → `OJ: ⏭ skipped` — do not block.
+- Do not loosen the contract. Policy: `.stackguide/oj.md`.
+
+### Ponytail (after OJ)
+
+Review the feature diff for over-engineering (`delete` / `stdlib` / `native` / `yagni` / `shrink`).
+Do not re-argue OJ size/complexity findings. End with `Lean already. Ship.` or `net: -N`.
+
 ## Standard report
 
 On completion, emit this summary (paste it into the MR):
@@ -71,6 +90,8 @@ On completion, emit this summary (paste it into the MR):
 - Backend: ✅ tests (<N>) / ✅ migrate
 - Frontend: ✅ tests (<N>) / ✅ build
 - TDD Budget: ✅ 3 tests (1U + 1I + 1UI)
+- OJ (changed vs <base-branch>): ✅ 0 findings | ❌ <N> findings | ⏭ skipped
+- Ponytail: Lean already | <N> findings
 - Traceability: ✅ branch / ✅ MR title / ✅ ticket link
 - Pending: <list or "none">
 ```

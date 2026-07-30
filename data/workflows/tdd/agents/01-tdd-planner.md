@@ -16,6 +16,7 @@
 
 - `tdd-core` — TDD policy and 3-tests baseline.
 - `traceability` — branch conventions.
+- `oj-health` — OJ constraints in the plan (do not run OJ).
 - `stack-laravel` — if the slice touches a Laravel backend.
 - `stack-react` — if the slice touches a React frontend.
 - `stack-postgres-migrations` — if there are schema changes.
@@ -69,8 +70,23 @@
 4. Integration test → Red → Green → Refactor
 5. UI/API test → Red → Green → Refactor
 
+## OJ constraints
+- Contract: present | missing (`.stackguide/repo-health.json` or `.repo-health.json`)
+- Target modules / folders: …
+- Keep new/changed files within contract limits (split early if a file would grow past limits)
+- Do not plan to raise contract limits or broad ignores
+
 ## Proposed branch
 `feature/<TICKET-KEY>-<slug>`
+
+**Create the branch before handing off** (when `workflow.autoCreateFeatureBranch` is true in `.stackguide/config.json`):
+
+```bash
+bash .stackguide/scripts/tdd-feature-branch.sh <TICKET-KEY> <slug>
+```
+
+Base branch: `vcs.defaultBranch` from `.stackguide/config.json`.
+Include `Branch created: …` in the plan output.
 ```
 
 ## Planner rules
@@ -80,6 +96,8 @@
 - If the brief is ambiguous, return to Intake or ask the user.
 - Every test must name **one concrete case**, not "several cases".
 - Cases must be **observable** (input → output/effect). Not "test method X".
+- Design within OJ `.repo-health.json` / `.stackguide/repo-health.json`. Do not plan to raise limits. Policy: `.stackguide/oj.md`.
+- Include `## OJ constraints` in every plan.
 
 ## Heuristics for picking the 3 tests
 

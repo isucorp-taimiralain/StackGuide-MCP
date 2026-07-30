@@ -20,6 +20,7 @@ Initial baseline: **3 tests per slice**.
 
 ## Implement → Verify → Commit
 
+0. **Planner / Implementer**: when `TICKET-KEY` is known, run `bash .stackguide/scripts/tdd-feature-branch.sh <TICKET-KEY> <slug>` before plan output (planner) or before any edit (implementer).
 1. **Implementer**: code + tests, **no git commit**. Working tree may be clean or dirty.
 2. **Verifier**: `agent action:"verify"` — TDD budget uses branch diff vs configured base branch (e.g. `development`).
 3. **Human / Releaser**: conventional commit(s) and MR **after** verify passes.

@@ -8,16 +8,32 @@
 
 ## When to activate
 
-- After merge to `main` / release branch.
-- When the user asks to "cut version X.Y.Z".
+- After Verifier PASS, to open the feature MR.
+- After merge to `main` / release branch, when the user asks to "cut version X.Y.Z".
 - To generate release notes from conventional commits.
 
 ## Skills to load
 
 - `mr-conventions` — conventions.
 - `stack-postgres-migrations` — deployment notes.
+- `oj-health` — when opening a feature MR after Verifier (`.stackguide/oj.md`).
 
-## Mandatory preflight
+## Feature MR / StackGuide release (default path)
+
+When opening the MR after Verifier PASS (not only SemVer tags):
+
+1. Require Verifier Report lines: **OJ** (`PASS` | `skipped`) and **Ponytail**. `FAIL` → stop.
+2. Paste checkboxes from `.stackguide/oj.md` into the MR Test plan:
+
+```markdown
+- [ ] OJ (changed vs <base-branch>): PASS | FAIL | skipped
+- [ ] Ponytail review: done | n/a
+```
+
+3. If the MR adds contract `exceptions[]`, list each in Out of scope with cleanup PR + `expires`.
+4. Do **not** add OJ CI/scripts outside `.stackguide/`.
+
+## Mandatory preflight (tags)
 
 Before tagging:
 
@@ -90,6 +106,7 @@ Then:
 - Never create tags on red CI.
 - Never touch `main` directly (always via MR).
 - Never publish secrets or sensitive variables in the notes.
+- Never ship a contract loosen without an explicit follow-up.
 
 ## Breaking-change communication
 
@@ -102,4 +119,5 @@ For each breaking change list:
 ## Handoff
 
 - **To**: Human (deployment / communication).
-- **Closing phrase**: `Release vX.Y.Z published`.
+- **Closing phrase (feature MR)**: `MR ready / opened — OJ evidence included`.
+- **Closing phrase (tag)**: `Release vX.Y.Z published`.

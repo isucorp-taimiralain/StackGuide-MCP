@@ -73,7 +73,7 @@ const serverState: ServerState = {
 const server = new Server(
   {
     name: 'stackguide-mcp',
-    version: '4.1.5',
+    version: '4.2.0',
   },
   {
     capabilities: {

@@ -356,23 +356,23 @@ export const toolDefinitions = [
   // ==================== WORKFLOW (1) - NEW in v4.0.0 ====================
   {
     name: 'workflow',
-    description: 'TDD agentic workflow with lazy loading. Load agents, skills, hooks and commands on demand to save tokens. Five roles: Intake → Planner → Implementer → Verifier → Releaser.',
+    description: 'TDD agentic workflow with lazy loading. Load agents, skills, hooks, commands, scripts and the OJ policy on demand to save tokens. Five roles: Intake → Planner → Implementer → Verifier → Releaser.',
     inputSchema: {
       type: 'object',
       properties: {
         action: {
           type: 'string',
           description: 'Action to perform',
-          enum: ['list', 'agent', 'skill', 'command', 'hook']
+          enum: ['list', 'agent', 'skill', 'command', 'hook', 'script', 'policy']
         },
         name: {
           type: 'string',
-          description: 'Name of the item to load (e.g. "tdd-planner", "tdd-core", "verify")'
+          description: 'Name of the item to load (e.g. "tdd-planner", "tdd-core", "verify", "oj-verify")'
         },
         category: {
           type: 'string',
           description: 'Filter list by category',
-          enum: ['agents', 'skills', 'hooks', 'commands']
+          enum: ['agents', 'skills', 'hooks', 'commands', 'scripts']
         }
       },
       required: []
@@ -382,7 +382,7 @@ export const toolDefinitions = [
   // ==================== INIT (1) - NEW in v4.0.0 ====================
   {
     name: 'init',
-    description: 'Initialize a project with the StackGuide TDD workflow. Auto-detects your stack and scaffolds a .stackguide/ directory with only the relevant agents, skills and hooks.',
+    description: 'Initialize a project with the StackGuide TDD workflow. Auto-detects your stack and scaffolds a .stackguide/ directory with only the relevant agents, skills, hooks and scripts (including the optional OJ health gate).',
     inputSchema: {
       type: 'object',
       properties: {
